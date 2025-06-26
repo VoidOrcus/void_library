@@ -2,7 +2,7 @@
  	ModernUI Library 
  	Autor: VoidOrcus (com assistência da IA Gemini) 
  	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais. 
- 	Versão: 4.0 - Reestruturação completa para centralização vertical da paginação.
+ 	Versão: 4.1 - Adicionado ScrollingFrame para abas e separadores visuais.
  ]] 
 
 local ModernUI = {}
@@ -23,9 +23,9 @@ local CoreGui = game:GetService("CoreGui")
 --================================================================
 local Theme = {
 	BackgroundColor = Color3.fromRGB(0, 43, 54),
-	AccentColor1 = Color3.fromRGB(7, 54, 66),
+	AccentColor1 = Color3.fromRGB(25, 25, 25), -- [!] Cor do título alterada para preto moderno
 	TextColor = Color3.fromRGB(131, 148, 150),
-	TextEmphasizedColor = Color3.fromRGB(147, 161, 161),
+	TextEmphasizedColor = Color3.fromRGB(200, 210, 215), -- Cor do texto enfatizado levemente mais clara
 	PrimaryColor = Color3.fromRGB(38, 139, 210),
 	CloseColor = Color3.fromRGB(220, 50, 47),
 	FontTitle = Enum.Font.Code,
@@ -79,46 +79,39 @@ function ModernUI.CreateWindow(options)
 	Create("UICorner", { CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = self.WindowFrame })
 	Create("UIStroke", { Thickness = 1, Color = Theme.AccentColor1, Transparency = 0.5, Parent = self.WindowFrame })
 	
-	-- Barra de Título (no topo)
 	local TitleBar = Create("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = self.WindowFrame, ZIndex = 4 })
 	local TitleLabel = Create("TextLabel", { Name = "TitleLabel", Size = UDim2.new(1, -70, 1, 0), Position = UDim2.fromOffset(10, 0), BackgroundTransparency = 1, Font = Theme.FontTitle, TextColor3 = Theme.TextEmphasizedColor, Text = "  > " .. title, TextXAlignment = Enum.TextXAlignment.Left, TextSize = 15, Parent = TitleBar, ZIndex = 5 })
 	
-	-- [NOVA ESTRUTURA] Container para os botões das abas (barra lateral)
-	self.Sidebar = Create("Frame", {
-		Name = "Sidebar",
-		Size = UDim2.new(0, 140, 1, -32), -- 140px de largura, altura total menos a barra de título
-		Position = UDim2.fromOffset(0, 32),
-		BackgroundColor3 = Theme.BackgroundColor,
-		BackgroundTransparency = 0.3,
-		BorderSizePixel = 0,
-		Parent = self.WindowFrame
+	local Sidebar = Create("Frame", {
+		Name = "Sidebar", Size = UDim2.new(0, 140, 1, -32), Position = UDim2.fromOffset(0, 32),
+		BackgroundColor3 = Theme.BackgroundColor, BackgroundTransparency = 0.3, BorderSizePixel = 0, Parent = self.WindowFrame
 	})
 	
-	-- Layout para centralizar verticalmente os botões na Sidebar
-	local SidebarLayout = Create("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 5),
-        HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		VerticalAlignment = Enum.VerticalAlignment.Center, -- A propriedade chave para a centralização
-        Parent = self.Sidebar
-    })
-	Create("UIPadding", { PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5), Parent = self.Sidebar })
-
-
-	-- Separador visual
-	self.Separator = Create("Frame", { Name = "Separator", Size = UDim2.new(0, 1, 1, -32), Position = UDim2.fromOffset(140, 32), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = self.WindowFrame })
-
-	-- [NOVA ESTRUTURA] Container para as páginas
-	self.PageContainer = Create("Frame", {
-		Name = "PageContainer",
-		Size = UDim2.new(1, -141, 1, -32), -- Largura total menos a sidebar e o separador, altura total menos a barra de título
-		Position = UDim2.fromOffset(141, 32),
-		BackgroundTransparency = 1,
-		ClipsDescendants = true,
-		Parent = self.WindowFrame
+	-- [!] NOVA ESTRUTURA COM SCROLLINGFRAME
+	local TopSeparator = Create("Frame", { Name = "TopSep", Size = UDim2.new(1, -20, 0, 1), Position = UDim2.new(0.5, 0, 0, 20), AnchorPoint = Vector2.new(0.5, 0), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = Sidebar })
+	
+	self.TabScrollView = Create("ScrollingFrame", {
+		Name = "TabScrollView", Size = UDim2.new(1, 0, 1, -52), Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1, BorderSizePixel = 0, ScrollingDirection = Enum.ScrollingDirection.Y,
+		ScrollBarImageColor3 = Theme.TextColor, ScrollBarThickness = 4, AutomaticCanvasSize = Enum.AutomaticSize.Y, Parent = Sidebar
 	})
 
-	-- Botões da Janela (Fechar, Minimizar)
+	local TabListLayout = Create("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 5),
+        HorizontalAlignment = Enum.HorizontalAlignment.Center, FillDirection = Enum.FillDirection.Vertical,
+        Parent = self.TabScrollView
+    })
+	Create("UIPadding", { PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5), PaddingTop = UDim.new(0,5), PaddingBottom = UDim.new(0,5), Parent = self.TabScrollView })
+	
+	local BottomSeparator = Create("Frame", { Name = "BottomSep", Size = UDim2.new(1, -20, 0, 1), Position = UDim2.new(0.5, 0, 1, -20), AnchorPoint = Vector2.new(0.5, 1), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = Sidebar })
+	
+	local ContentSeparator = Create("Frame", { Name = "Separator", Size = UDim2.new(0, 1, 1, -32), Position = UDim2.fromOffset(140, 32), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = self.WindowFrame })
+
+	self.PageContainer = Create("Frame", {
+		Name = "PageContainer", Size = UDim2.new(1, -141, 1, -32), Position = UDim2.fromOffset(141, 32),
+		BackgroundTransparency = 1, ClipsDescendants = true, Parent = self.WindowFrame
+	})
+
 	local WindowButtonsFrame = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(64, 32), Position = UDim2.new(1, -64, 0, 0), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 6 })
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Parent = WindowButtonsFrame})
 	local CloseButton = Create("ImageButton", { Name = "Close", Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Image = "rbxassetid://138186698594149", ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame })
@@ -129,18 +122,16 @@ function ModernUI.CreateWindow(options)
 	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5}) end)
 	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {BackgroundTransparency = 1}) end)
 	
-	-- Lógica de Minimizar (adaptada para a nova estrutura)
 	local isMinimized = false
 	MinimizeButton.MouseButton1Click:Connect(function()
 		isMinimized = not isMinimized
-		self.Sidebar.Visible = not isMinimized
-		self.Separator.Visible = not isMinimized
+		Sidebar.Visible = not isMinimized
+		ContentSeparator.Visible = not isMinimized
 		self.PageContainer.Visible = not isMinimized
 		local minimizedSize = UDim2.new(size.X.Scale, size.X.Offset, 0, TitleBar.AbsoluteSize.Y)
 		Animate(self.WindowFrame, {Size = isMinimized and minimizedSize or size})
 	end)
 	
-	-- Lógica para arrastar a janela
 	local dragging = false; local dragStart, startPos
 	TitleBar.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -154,7 +145,6 @@ function ModernUI.CreateWindow(options)
 		end
 	end)
 	
-	-- Animação inicial
 	self.WindowFrame.Position = position + UDim2.fromOffset(0, 20)
 	Animate(self.WindowFrame, {Position = position})
 	return self
@@ -176,8 +166,8 @@ function ModernUI:SwitchToTab(pageIndex)
 	for i, button in ipairs(self.Tabs) do
 		local isSelected = (i == pageIndex)
 		local goalColor = isSelected and Theme.TextEmphasizedColor or Theme.TextColor
-		local goalBgColor = isSelected and Theme.AccentColor1 or Color3.fromRGB(255,255,255) -- Fundo transparente para não selecionado
-		local goalBgTransparency = isSelected and 0 or 1
+		local goalBgColor = isSelected and Theme.PrimaryColor or Theme.AccentColor1 
+		local goalBgTransparency = isSelected and 0.5 or 1
 		Animate(button, {TextColor3 = goalColor, BackgroundColor3 = goalBgColor, BackgroundTransparency = goalBgTransparency})
 	end
 end
@@ -191,15 +181,11 @@ function ModernUI:AddTab(tabName)
 	Create("UIPadding", { PaddingTop = UDim.new(0, 15), PaddingBottom = UDim.new(0, 15), PaddingLeft = UDim.new(0, 15), PaddingRight = UDim.new(0, 15), Parent = canvas })
 	table.insert(self.Pages, page)
 	
-	-- Adiciona o botão da aba diretamente na Sidebar
+	-- [!] Adiciona o botão da aba diretamente no ScrollingFrame
 	local tabButton = Create("TextButton", {
-		Name = tabName, Text = tabName,
-		Size = UDim2.new(1, -10, 0, 32), -- Largura de 100% da sidebar -10px de padding
-		Font = Theme.FontBody, TextSize = 15,
-		TextColor3 = Theme.TextColor,
-		BackgroundTransparency = 1,
-		Parent = self.Sidebar, -- O pai agora é a Sidebar
-		AutoButtonColor = false
+		Name = tabName, Text = tabName, Size = UDim2.new(1, 0, 0, 32),
+		Font = Theme.FontBody, TextSize = 15, TextColor3 = Theme.TextColor, BackgroundTransparency = 1,
+		Parent = self.TabScrollView, AutoButtonColor = false
 	})
 	Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = tabButton})
 	table.insert(self.Tabs, tabButton)
