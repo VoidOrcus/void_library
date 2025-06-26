@@ -2,7 +2,7 @@
 	ModernUI Library
 	Autor: VoidOrcus (com assistência da IA Gemini)
 	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais.
-	Versão: 4.0 - Viewport do Player, Sidebar com Ícones e Rolagem, Novo Layout e Tema Refinado.
+	Versão: 4.1 - CORREÇÃO DE COMPATIBILIDADE: Viewport agora usa iluminação interna, corrigindo o erro "Unable to create Instance".
 ]]
 
 local ModernUI = {}
@@ -25,7 +25,7 @@ local CoreGui = game:GetService("CoreGui")
 --================================================================
 local Theme = {
 	BackgroundColor = Color3.fromRGB(0, 43, 54),
-	TitleBarColor = Color3.fromRGB(20, 22, 25),      -- NOVO: Cinza-escuro moderno para a barra de título
+	TitleBarColor = Color3.fromRGB(20, 22, 25),
 	AccentColor1 = Color3.fromRGB(7, 54, 66),
 	TextColor = Color3.fromRGB(131, 148, 150),
 	TextEmphasizedColor = Color3.fromRGB(147, 161, 161),
@@ -57,14 +57,22 @@ local function Animate(instance, goal, speed)
 end
 
 --================================================================
--- NOVA FUNÇÃO: VIEWPORT DO PLAYER
+-- FUNÇÃO VIEWPORT DO PLAYER (CORRIGIDA)
 --================================================================
 local function CreatePlayerViewport(parent)
+	-- ANTES (comentado para referência):
+	-- Criava "AmbientLight" e "DirectionalLight", que causavam o erro.
+	
+	-- DEPOIS (solução correta e compatível):
+	-- As propriedades de iluminação são definidas diretamente no ViewportFrame.
 	local viewport = Create("ViewportFrame", {
 		Size = UDim2.new(1, 0, 0, 120),
 		BackgroundColor3 = Theme.AccentColor1,
 		BackgroundTransparency = 0.5,
 		BorderSizePixel = 0,
+		Ambient = Color3.new(0.6, 0.6, 0.6), -- Iluminação ambiente
+		LightColor = Color3.new(0.8, 0.8, 0.8), -- Cor da luz direcional
+		LightDirection = Vector3.new(-1, -1, -2), -- Direção da luz (de cima, da esquerda, de frente)
 		Parent = parent
 	})
 	Create("UICorner", { CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = viewport })
@@ -73,18 +81,14 @@ local function CreatePlayerViewport(parent)
 	local camera = Create("Camera", { FieldOfView = 50, Parent = viewport })
 	viewport.CurrentCamera = camera
 
-	Create("AmbientLight", { Brightness = 0.5, Color = Color3.new(1,1,1), Parent = world })
-	Create("DirectionalLight", { Brightness = 0.5, Color = Color3.new(1,1,1), Rotation = Vector3.new(-45, -45, 0), Parent = world })
-
 	local char = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
 	local charClone = char:Clone()
 	charClone.Parent = world
 	charClone.Humanoid.DisplayDistanceType = Enum.DisplayDistanceType.None
 	charClone:SetPrimaryPartCFrame(CFrame.new(0, 0, 0))
 
-	camera.CFrame = CFrame.new(Vector3.new(0, 1, 4), charClone.HumanoidRootPart.Position)
+	camera.CFrame = CFrame.new(Vector3.new(0, charClone.Humanoid.HipHeight, 4), charClone.HumanoidRootPart.Position)
 
-	-- Animação de rotação suave
 	RunService.Heartbeat:Connect(function()
 		if not charClone or not charClone.Parent then return end
 		local rot = CFrame.Angles(0, math.rad(0.5), 0)
@@ -96,7 +100,7 @@ end
 
 
 --================================================================
--- CRIAÇÃO DA JANELA PRINCIPAL (REESTRUTURADA)
+-- CRIAÇÃO DA JANELA PRINCIPAL
 --================================================================
 function ModernUI.CreateWindow(options)
 	local self = setmetatable({}, ModernUI)
@@ -116,33 +120,18 @@ function ModernUI.CreateWindow(options)
 	local MainContent = Create("Frame", { Name = "MainContent", Size = UDim2.new(1, 0, 1, -32), Position = UDim2.fromOffset(0, 32), BackgroundTransparency = 1, Parent = self.WindowFrame })
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, SortOrder = Enum.SortOrder.LayoutOrder, Parent = MainContent })
 
-	-- ##################################################################
-	-- # NOVA SIDEBAR COM ESTRUTURA COMPLETA                            #
-	-- ##################################################################
 	self.Sidebar = Create("Frame", { Name = "Sidebar", Size = UDim2.fromOffset(80, 0), SizeConstraint = Enum.SizeConstraint.RelativeYY, BackgroundColor3 = Theme.BackgroundColor, BackgroundTransparency = 0.3, Parent = MainContent })
 	local SidebarLayout = Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 10), HorizontalAlignment = Enum.HorizontalAlignment.Center, Parent = self.Sidebar })
 	Create("UIPadding", { PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10), Parent = self.Sidebar })
 
-	-- 1. Viewport do Player
-	self.PlayerViewport = CreatePlayerViewport(self.Sidebar)
-	self.PlayerViewport.LayoutOrder = 1
-
-	-- 2. Separador Superior
+	self.PlayerViewport = CreatePlayerViewport(self.Sidebar); self.PlayerViewport.LayoutOrder = 1
 	Create("Frame", { Name = "Separator1", Size = UDim2.new(1, -20, 0, 1), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = self.Sidebar, LayoutOrder = 2 })
-
-	-- 3. ScrollingFrame para os Ícones das Abas
-	self.TabScrollFrame = Create("ScrollingFrame", {
-		Name = "TabScrollFrame", Size = UDim2.new(1, 0, 1, -182), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollingDirection = Enum.ScrollingDirection.Y, ScrollBarThickness = 4, Parent = self.Sidebar, LayoutOrder = 3
-	})
-	local TabIconLayout = Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8), HorizontalAlignment = Enum.HorizontalAlignment.Center, Parent = self.TabScrollFrame })
-	
-	-- 4. Separador Inferior
+	self.TabScrollFrame = Create("ScrollingFrame", { Name = "TabScrollFrame", Size = UDim2.new(1, 0, 1, -182), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollingDirection = Enum.ScrollingDirection.Y, ScrollBarThickness = 4, Parent = self.Sidebar, LayoutOrder = 3 })
+	Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 8), HorizontalAlignment = Enum.HorizontalAlignment.Center, Parent = self.TabScrollFrame })
 	Create("Frame", { Name = "Separator2", Size = UDim2.new(1, -20, 0, 1), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = self.Sidebar, LayoutOrder = 4 })
-	
-	-- 5. Label de Versão
-	Create("TextLabel", { Name = "VersionLabel", Size = UDim2.new(1, 0, 0, 20), BackgroundTransparency = 1, Font = Theme.FontBody, Text = "v4.0 | ModernUI", TextColor3 = Theme.TextColor, TextSize = 12, Parent = self.Sidebar, LayoutOrder = 5 })
+	Create("TextLabel", { Name = "VersionLabel", Size = UDim2.new(1, 0, 0, 20), BackgroundTransparency = 1, Font = Theme.FontBody, Text = "v4.1 | ModernUI", TextColor3 = Theme.TextColor, TextSize = 12, Parent = self.Sidebar, LayoutOrder = 5 })
 
-	local Separator = Create("Frame", { Name = "Separator", Size = UDim2.new(0, 1, 1, 0), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = MainContent })
+	Create("Frame", { Name = "Separator", Size = UDim2.new(0, 1, 1, 0), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = MainContent })
 	self.PageContainer = Create("Frame", { Name = "PageContainer", Size = UDim2.new(1, -81, 1, 0), BackgroundTransparency = 1, ClipsDescendants = true, Parent = MainContent })
 	
 	local WindowButtonsFrame = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(64, 32), Position = UDim2.new(1, -64, 0, 0), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 6 })
@@ -154,44 +143,15 @@ function ModernUI.CreateWindow(options)
 	CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
 	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5}) end)
 	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {BackgroundTransparency = 1}) end)
-	local isMinimized = false
-	MinimizeButton.MouseButton1Click:Connect(function() isMinimized = not isMinimized; MainContent.Visible = not isMinimized; local minimizedSize = UDim2.new(size.X.Scale, size.X.Offset, 0, TitleBar.AbsoluteSize.Y); Animate(self.WindowFrame, {Size = isMinimized and minimizedSize or size}) end)
-	
-	local dragging=false; local dragStart,startPos; TitleBar.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dragging,dragStart,startPos=true,i.Position,self.WindowFrame.Position; local c; c=i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then dragging=false; c:Disconnect() end end) end end)
-	UserInputService.InputChanged:Connect(function(i) if(i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch)and dragging then self.WindowFrame.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+(i.Position.X-dragStart.X),startPos.Y.Scale,startPos.Y.Offset+(i.Position.Y-dragStart.Y))end end)
-	
-	self.WindowFrame.Position = position + UDim2.fromOffset(0, 20)
-	Animate(self.WindowFrame, {Position = position})
+	local isMinimized=false; MinimizeButton.MouseButton1Click:Connect(function() isMinimized=not isMinimized; MainContent.Visible=not isMinimized; local mS=UDim2.new(size.X.Scale,size.X.Offset,0,TitleBar.AbsoluteSize.Y); Animate(self.WindowFrame,{Size=isMinimized and mS or size})end)
+	local d,dS,sP; TitleBar.InputBegan:Connect(function(i)if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInput-Type.Touch then d,dS,sP=true,i.Position,self.WindowFrame.Position;local c;c=i.Changed:Connect(function()if i.UserInputState==Enum.UserInputState.End then d=false;c:Disconnect()end end)end end)
+	UserInputService.InputChanged:Connect(function(i)if(i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch)and d then self.WindowFrame.Position=UDim2.new(sP.X.Scale,sP.X.Offset+(i.Position.X-dS.X),sP.Y.Scale,sP.Y.Offset+(i.Position.Y-dS.Y))end end)
+	self.WindowFrame.Position = position + UDim2.fromOffset(0, 20); Animate(self.WindowFrame, {Position = position})
 	return self
 end
 
---================================================================
--- SISTEMA DE ABAS (Adaptado para Ícones)
---================================================================
-function ModernUI:SwitchToTab(pageIndex) if not self.Pages[pageIndex] or self.ActiveTabIndex==pageIndex then return end; local oldPage=self.Pages[self.ActiveTabIndex]; local newPage=self.Pages[pageIndex]; self.ActiveTabIndex=pageIndex; local oldCanvas=oldPage:FindFirstChildOfClass("CanvasGroup"); if oldCanvas then Animate(oldCanvas,{GroupTransparency=1},0.15)end; task.wait(0.15); oldPage.Visible=false; newPage.Visible=true; local newCanvas=newPage:FindFirstChildOfClass("CanvasGroup"); if newCanvas then newCanvas.GroupTransparency=1;Animate(newCanvas,{GroupTransparency=0},0.15)end; for i,button in ipairs(self.Tabs)do local isSelected=(i==pageIndex); local goalBgColor=isSelected and Theme.AccentColor1 or Theme.BackgroundColor; Animate(button,{BackgroundColor3=goalBgColor})end end
-function ModernUI:AddTab(tabInfo)
-	local tabIndex = #self.Tabs + 1
-	local page = Create("Frame", { Name = tabInfo.Name .. "Page", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, ClipsDescendants = true, Visible = (tabIndex == 1), Parent = self.PageContainer })
-	local canvas = Create("CanvasGroup", { Name = "PageCanvas", Size = UDim2.new(1,0,1,0), BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5, Parent = page, GroupTransparency = (tabIndex == 1) and 0 or 1, })
-	Create("UICorner", {CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = canvas}); Create("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center, Parent = canvas }); Create("UIPadding", { PaddingTop = UDim.new(0, 15), PaddingBottom = UDim.new(0, 15), PaddingLeft = UDim.new(0, 15), PaddingRight = UDim.new(0, 15), Parent = canvas })
-	table.insert(self.Pages, page)
-	
-	local tabButton = Create("ImageButton", { Name = tabInfo.Name, Size = UDim2.fromOffset(48, 48), BackgroundColor3 = Theme.BackgroundColor, Image = tabInfo.Icon, Parent = self.TabScrollFrame, AutoButtonColor = false })
-	Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = tabButton}); Create("UIStroke", {Color=Theme.AccentColor1, Parent=tabButton})
-	table.insert(self.Tabs, tabButton)
-	
-	tabButton.MouseEnter:Connect(function() Animate(tabButton, {ImageColor3 = Theme.PrimaryColor}) end)
-	tabButton.MouseLeave:Connect(function() Animate(tabButton, {ImageColor3 = Color3.new(1,1,1)}) end)
-	tabButton.MouseButton1Click:Connect(function() self:SwitchToTab(tabIndex) end)
-	
-	if tabIndex == 1 then self:SwitchToTab(1) end
-	
-	local tabObject = setmetatable({}, Tab); tabObject.Window = self; tabObject.PageContents = canvas; return tabObject
-end
-
---================================================================
--- MÉTODOS DOS COMPONENTES
---================================================================
+function ModernUI:SwitchToTab(pageIndex) if not self.Pages[pageIndex]or self.ActiveTabIndex==pageIndex then return end;local oP=self.Pages[self.ActiveTabIndex];local nP=self.Pages[pageIndex];self.ActiveTabIndex=pageIndex;local oC=oP:FindFirstChildOfClass("CanvasGroup");if oC then Animate(oC,{GroupTransparency=1},0.15)end;task.wait(0.15);oP.Visible=false;nP.Visible=true;local nC=nP:FindFirstChildOfClass("CanvasGroup");if nC then nC.GroupTransparency=1;Animate(nC,{GroupTransparency=0},0.15)end;for i,b in ipairs(self.Tabs)do local s=(i==pageIndex);local bC=s and Theme.AccentColor1 or Theme.BackgroundColor;Animate(b,{BackgroundColor3=bC})end end
+function ModernUI:AddTab(tabInfo) local tI=#self.Tabs+1;local p=Create("Frame",{Name=tabInfo.Name.."Page",Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,ClipsDescendants=true,Visible=(tI==1),Parent=self.PageContainer});local c=Create("CanvasGroup",{Name="PageCanvas",Size=UDim2.new(1,0,1,0),BackgroundColor3=Theme.AccentColor1,BackgroundTransparency=0.5,Parent=p,GroupTransparency=(tI==1)and 0 or 1});Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=c});Create("UIListLayout",{Padding=UDim.new(0,10),SortOrder=Enum.SortOrder.LayoutOrder,HorizontalAlignment=Enum.HorizontalAlignment.Center,Parent=c});Create("UIPadding",{PaddingTop=UDim.new(0,15),PaddingBottom=UDim.new(0,15),PaddingLeft=UDim.new(0,15),PaddingRight=UDim.new(0,15),Parent=c});table.insert(self.Pages,p);local tB=Create("ImageButton",{Name=tabInfo.Name,Size=UDim2.fromOffset(48,48),BackgroundColor3=Theme.BackgroundColor,Image=tabInfo.Icon,Parent=self.TabScrollFrame,AutoButtonColor=false});Create("UICorner",{CornerRadius=UDim.new(0,6),Parent=tB});Create("UIStroke",{Color=Theme.AccentColor1,Parent=tB});table.insert(self.Tabs,tB);tB.MouseEnter:Connect(function()Animate(tB,{ImageColor3=Theme.PrimaryColor})end);tB.MouseLeave:Connect(function()Animate(tB,{ImageColor3=Color3.new(1,1,1)})end);tB.MouseButton1Click:Connect(function()self:SwitchToTab(tI)end);if tI==1 then self:SwitchToTab(1)end;local tO=setmetatable({},Tab);tO.Window=self;tO.PageContents=c;return tO end
 function Tab:AddLabel(options) options=options or{};options.Parent=self.PageContents;local l=Create("TextLabel",{Name="Label",Text=options.Title or"Label",Font=options.Font or Theme.FontBody,TextSize=options.TextSize or 16,TextColor3=options.Color or Theme.TextEmphasizedColor,TextXAlignment=Enum.TextXAlignment.Left,Size=UDim2.new(1,0,0,options.TextSize or 16),BackgroundTransparency=1,Parent=options.Parent,LayoutOrder=options.Order or 0});if options.Animate then Animate(l,{Position=l.Position,TextTransparency=0},0.5)end;return l end
 function Tab:AddButton(options) options=options or{};options.Parent=self.PageContents;local b=Create("TextButton",{Name="Button",Text=options.Title or"Button",Font=Theme.FontBody,TextSize=16,TextColor3=Theme.TextEmphasizedColor,BackgroundColor3=Theme.AccentColor1,Size=UDim2.new(1,0,0,38),Parent=options.Parent,LayoutOrder=options.Order or 0,AutoButtonColor=false});Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius-2),Parent=b});b.MouseEnter:Connect(function()Animate(b,{BackgroundColor3=Theme.PrimaryColor,TextColor3=Color3.new(1,1,1)})end);b.MouseLeave:Connect(function()Animate(b,{BackgroundColor3=Theme.AccentColor1,TextColor3=Theme.TextEmphasizedColor})end);b.MouseButton1Click:Connect(function()if options.Callback then task.spawn(options.Callback)end;local t=Animate(b,{Size=UDim2.new(1,0,0,36)},0.1);t.Completed:Connect(function()Animate(b,{Size=UDim2.new(1,0,0,38)},0.1)end)end);return b end
 function Tab:AddSlider(options) options=options or{};options.Parent=self.PageContents;local min,max,def=options.Min or 0,options.Max or 100,options.Default or 50;local h=Create("Frame",{Name="SliderHolder",Size=UDim2.new(1,0,0,50),BackgroundTransparency=1,Parent=options.Parent,LayoutOrder=options.Order or 0});local tL=Create("TextLabel",{Name="Title",Text=options.Title or"Slider",Font=Theme.FontBody,TextSize=16,TextColor3=Theme.TextColor,TextXAlignment=Enum.TextXAlignment.Left,Size=UDim2.new(0.7,0,0,16),Position=UDim2.fromOffset(0,0),BackgroundTransparency=1,Parent=h});local vL=Create("TextLabel",{Name="Value",Text=tostring(math.floor(def)),Font=Theme.FontBody,TextSize=16,TextColor3=Theme.TextColor,TextXAlignment=Enum.TextXAlignment.Right,Size=UDim2.new(0.3,0,0,16),Position=UDim2.new(0.7,0,0,0),BackgroundTransparency=1,Parent=h});local tr=Create("Frame",{Name="Track",Size=UDim2.new(1,0,0,6),Position=UDim2.new(0,0,0,30),BackgroundColor3=Theme.AccentColor1,Parent=h});Create("UICorner",{Parent=tr});local p=Create("Frame",{Name="Progress",Size=UDim2.new((def-min)/(max-min),0,1,0),BackgroundColor3=Theme.PrimaryColor,Parent=tr});Create("UICorner",{Parent=p});local th=Create("TextButton",{Name="Thumb",Size=UDim2.fromOffset(18,18),Position=UDim2.new(p.Size.X.Scale,-9,0.5,-9),BackgroundColor3=Theme.TextEmphasizedColor,Parent=tr,ZIndex=6,Text=""});Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=th});local function Upd(x)local rX=x-tr.AbsolutePosition.X;local pct=math.clamp(rX/tr.AbsoluteSize.X,0,1);local val=min+(max-min)*pct;p.Size=UDim2.new(pct,0,1,0);th.Position=UDim2.new(pct,-9,0.5,-9);vL.Text=tostring(math.floor(val));if options.Callback then options.Callback(val)end end;th.InputBegan:Connect(function(i)if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then local c1=UserInputService.InputChanged:Connect(function(m)if m.UserInputType==Enum.UserInputType.MouseMovement or m.UserInputType==Enum.UserInputType.Touch then Upd(m.Position.X)end end);local c2=UserInputService.InputEnded:Connect(function(e)if e==i then c1:Disconnect();c2:Disconnect()end end)end end);return h end
