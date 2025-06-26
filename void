@@ -2,7 +2,7 @@
 	ModernUI Library
 	Autor: VoidOrcus (com assistência da IA Gemini)
 	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais.
-	Versão: 2.3 - CORREÇÃO DEFINITIVA: Cada página agora possui seu próprio layout, eliminando bugs de renderização.
+	Versão: 2.4 - CORREÇÃO CRÍTICA: Substituído o uso incorreto de GroupTransparency por CanvasGroup.
 ]]
 
 local ModernUI = {}
@@ -123,19 +123,29 @@ function ModernUI.CreateWindow(options)
 end
 
 --================================================================
--- SISTEMA DE ABAS CORRIGIDO
+-- SISTEMA DE ABAS CORRIGIDO COM CANVASGROUP
 --================================================================
 function ModernUI:SwitchToTab(pageIndex)
 	if not self.Pages[pageIndex] or self.ActiveTabIndex == pageIndex then return end
+	
 	local oldPage = self.Pages[self.ActiveTabIndex]
 	local newPage = self.Pages[pageIndex]
 	self.ActiveTabIndex = pageIndex
-	Animate(oldPage, {GroupTransparency = 1}, 0.15)
+	
+	-- CORREÇÃO: Anima o CanvasGroup dentro da página, e não a página em si.
+	local oldCanvas = oldPage:FindFirstChildOfClass("CanvasGroup")
+	local newCanvas = newPage:FindFirstChildOfClass("CanvasGroup")
+
+	if oldCanvas then Animate(oldCanvas, {GroupTransparency = 1}, 0.15) end
 	task.wait(0.15)
 	oldPage.Visible = false
+	
 	newPage.Visible = true
-	newPage.GroupTransparency = 1
-	Animate(newPage, {GroupTransparency = 0}, 0.15)
+	if newCanvas then
+		newCanvas.GroupTransparency = 1
+		Animate(newCanvas, {GroupTransparency = 0}, 0.15)
+	end
+	
 	for i, button in ipairs(self.Tabs) do
 		local isSelected = (i == pageIndex)
 		local goalColor = isSelected and Theme.TextEmphasizedColor or Theme.TextColor
@@ -147,13 +157,17 @@ end
 function ModernUI:AddTab(tabName)
 	local tabIndex = #self.Tabs + 1
 	local page = Create("Frame", {
-		Name = tabName .. "Page", Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5, ClipsDescendants = true, Visible = (tabIndex == 1), GroupTransparency = (tabIndex == 1) and 0 or 1, Parent = self.PageContainer
+		Name = tabName .. "Page", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, ClipsDescendants = true, Visible = (tabIndex == 1), Parent = self.PageContainer
 	})
-	Create("UICorner", {CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = page})
 	
-	-- CORREÇÃO: Cada página agora cria seu próprio layout, evitando conflitos.
-	Create("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center, Parent = page })
-	Create("UIPadding", { PaddingTop = UDim.new(0, 15), PaddingBottom = UDim.new(0, 15), PaddingLeft = UDim.new(0, 15), PaddingRight = UDim.new(0, 15), Parent = page })
+	-- CORREÇÃO: Adiciona um CanvasGroup para controlar a transparência do grupo.
+	local canvas = Create("CanvasGroup", {
+		Name = "PageCanvas", Size = UDim2.new(1,0,1,0), BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5, Parent = page, GroupTransparency = (tabIndex == 1) and 0 or 1,
+	})
+	Create("UICorner", {CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = canvas})
+	
+	Create("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center, Parent = canvas })
+	Create("UIPadding", { PaddingTop = UDim.new(0, 15), PaddingBottom = UDim.new(0, 15), PaddingLeft = UDim.new(0, 15), PaddingRight = UDim.new(0, 15), Parent = canvas })
 	table.insert(self.Pages, page)
 	
 	local tabButton = Create("TextButton", { Name = tabName, Text = tabName, Size = UDim2.new(0, 120, 1, -4), Font = Theme.FontBody, TextSize = 15, Parent = self.TabFrame, AutoButtonColor = false })
@@ -166,23 +180,25 @@ function ModernUI:AddTab(tabName)
 	
 	local tabObject = setmetatable({}, Tab)
 	tabObject.Window = self
-	tabObject.Page = page
+	tabObject.PageContents = canvas -- Os componentes agora são filhos do CanvasGroup
 	return tabObject
 end
 
 --================================================================
--- MÉTODOS DOS COMPONENTES (Agora pertencem ao objeto Tab)
+-- MÉTODOS DOS COMPONENTES (Agora adicionam ao CanvasGroup da página)
 --================================================================
 function Tab:AddLabel(options)
 	options = options or {}
-	local label = Create("TextLabel", { Name = "Label", Text = options.Title or "Label", Font = options.Font or Theme.FontBody, TextSize = options.TextSize or 16, TextColor3 = options.Color or Theme.TextColor, TextXAlignment = Enum.TextXAlignment.Left, Size = UDim2.new(1, 0, 0, options.TextSize or 16), BackgroundTransparency = 1, Parent = self.Page, LayoutOrder = options.Order or 0 })
+	options.Parent = self.PageContents
+	local label = Create("TextLabel", { Name = "Label", Text = options.Title or "Label", Font = options.Font or Theme.FontBody, TextSize = options.TextSize or 16, TextColor3 = options.Color or Theme.TextColor, TextXAlignment = Enum.TextXAlignment.Left, Size = UDim2.new(1, 0, 0, options.TextSize or 16), BackgroundTransparency = 1, Parent = options.Parent, LayoutOrder = options.Order or 0 })
 	if options.Animate then Animate(label, {Position = label.Position, TextTransparency = 0}, 0.5) end
 	return label
 end
 
 function Tab:AddButton(options)
 	options = options or {}
-	local button = Create("TextButton", { Name = "Button", Text = options.Title or "Button", Font = Theme.FontBody, TextSize = 16, TextColor3 = Theme.TextEmphasizedColor, BackgroundColor3 = Theme.AccentColor1, Size = UDim2.new(1, 0, 0, 38), Parent = self.Page, LayoutOrder = options.Order or 0, AutoButtonColor = false })
+	options.Parent = self.PageContents
+	local button = Create("TextButton", { Name = "Button", Text = options.Title or "Button", Font = Theme.FontBody, TextSize = 16, TextColor3 = Theme.TextEmphasizedColor, BackgroundColor3 = Theme.AccentColor1, Size = UDim2.new(1, 0, 0, 38), Parent = options.Parent, LayoutOrder = options.Order or 0, AutoButtonColor = false })
 	Create("UICorner", {CornerRadius = UDim.new(0, Theme.CornerRadius-2), Parent = button})
 	button.MouseEnter:Connect(function() Animate(button, {BackgroundColor3 = Theme.PrimaryColor, TextColor3 = Color3.new(1,1,1)}) end)
 	button.MouseLeave:Connect(function() Animate(button, {BackgroundColor3 = Theme.AccentColor1, TextColor3 = Theme.TextEmphasizedColor}) end)
@@ -196,8 +212,9 @@ end
 
 function Tab:AddSlider(options)
 	options = options or {}
+	options.Parent = self.PageContents
 	local min, max, default = options.Min or 0, options.Max or 100, options.Default or 50
-	local holder = Create("Frame", { Name = "SliderHolder", Size = UDim2.new(1, 0, 0, 50), BackgroundTransparency = 1, Parent = self.Page, LayoutOrder = options.Order or 0 })
+	local holder = Create("Frame", { Name = "SliderHolder", Size = UDim2.new(1, 0, 0, 50), BackgroundTransparency = 1, Parent = options.Parent, LayoutOrder = options.Order or 0 })
 	local titleLabel = Create("TextLabel", { Name = "TitleLabel", Text = options.Title or "Slider", Font = Theme.FontBody, TextSize = 16, TextColor3 = Theme.TextColor, TextXAlignment = Enum.TextXAlignment.Left, Size = UDim2.new(0.7, 0, 0, 16), Position = UDim2.fromOffset(0, 0), BackgroundTransparency = 1, Parent = holder })
 	local valueLabel = Create("TextLabel", { Name = "ValueLabel", Text = tostring(math.floor(default)), Font = Theme.FontBody, TextSize = 16, TextColor3 = Theme.TextColor, TextXAlignment = Enum.TextXAlignment.Right, Size = UDim2.new(0.3, 0, 0, 16), Position = UDim2.new(0.7, 0, 0, 0), BackgroundTransparency = 1, Parent = holder })
 	local track = Create("Frame", { Name = "Track", Size = UDim2.new(1, 0, 0, 6), Position = UDim2.new(0, 0, 0, 30), BackgroundColor3 = Theme.AccentColor1, Parent = holder }); Create("UICorner", {Parent = track})
@@ -210,8 +227,9 @@ end
 
 function Tab:AddDropdown(options)
 	options = options or {}
+	options.Parent = self.PageContents
 	local values = options.Values or {"Opção 1", "Opção 2"}; local default = options.Default or values[1]; local isOpen = false
-	local holder = Create("Frame", { Name = "DropdownHolder", Size = UDim2.new(1, 0, 0, 38), BackgroundTransparency = 1, Parent = self.Page, LayoutOrder = options.Order or 0, ZIndex = 10 })
+	local holder = Create("Frame", { Name = "DropdownHolder", Size = UDim2.new(1, 0, 0, 38), BackgroundTransparency = 1, Parent = options.Parent, LayoutOrder = options.Order or 0, ZIndex = 10 })
 	local mainButton = Create("TextButton", { Name = "MainButton", Text = "  "..tostring(default), Font = Theme.FontBody, TextSize = 16, TextColor3 = Theme.TextEmphasizedColor, BackgroundColor3 = Theme.AccentColor1, Size = UDim2.new(1, 0, 1, 0), Parent = holder, TextXAlignment = Enum.TextXAlignment.Left, AutoButtonColor = false }); Create("UICorner", {CornerRadius = UDim.new(0, Theme.CornerRadius-2), Parent = mainButton})
 	local arrow = Create("ImageLabel", { Image = "rbxassetid://3926305904", ImageColor3 = Theme.TextColor, Size = UDim2.fromOffset(20, 20), AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), BackgroundTransparency = 1, Parent = mainButton })
 	local dropdownList = Create("Frame", { Name = "DropdownList", Size = UDim2.new(1, 0, 0, 0), Position = UDim2.new(0, 0, 1, 5), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, ClipsDescendants = true, Visible = false, Parent = holder, ZIndex = 9 }); Create("UICorner", {CornerRadius = UDim.new(0, Theme.CornerRadius-2), Parent = dropdownList}); Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 2)}, dropdownList)
