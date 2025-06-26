@@ -2,7 +2,7 @@
 	ModernUI Library
 	Autor: VoidOrcus (com assistência da IA Gemini)
 	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais.
-	Versão: 1.3 - Adicionado botões de janela (Minimizar/Fechar), tema "Terminal" e melhorias visuais.
+	Versão: 1.4 - Corrigido bug de fundo transparente e visibilidade dos botões de janela.
 ]]
 
 local ModernUI = {}
@@ -17,16 +17,16 @@ local CoreGui = game:GetService("CoreGui")
 local ZINDEX_BASE = 100
 
 --================================================================
--- CONFIGURAÇÃO DE TEMA (Novo Tema "Terminal")
+-- CONFIGURAÇÃO DE TEMA
 --================================================================
 local Theme = {
-	BackgroundColor = Color3.fromRGB(25, 28, 32),   -- Fundo quase preto
-	AccentColor1 = Color3.fromRGB(35, 38, 42),      -- Cor da barra de título
-	AccentColor2 = Color3.fromRGB(45, 48, 52),      -- Cor de fundo de botões/elementos
-	PrimaryColor = Color3.fromRGB(50, 220, 150),    -- Verde "Hacker" vibrante
+	BackgroundColor = Color3.fromRGB(25, 28, 32),
+	AccentColor1 = Color3.fromRGB(35, 38, 42),
+	AccentColor2 = Color3.fromRGB(45, 48, 52),
+	PrimaryColor = Color3.fromRGB(50, 220, 150),
 	TextColor = Color3.fromRGB(240, 240, 245),
-	CloseColor = Color3.fromRGB(255, 90, 90),       -- Vermelho para o botão de fechar
-	FontTitle = Enum.Font.Code,                     -- Fonte monoespaçada
+	CloseColor = Color3.fromRGB(255, 90, 90),
+	FontTitle = Enum.Font.Code,
 	FontBody = Enum.Font.Code,
 	CornerRadius = 6,
 	AnimationSpeed = 0.2,
@@ -71,7 +71,11 @@ function ModernUI.CreateWindow(options)
 		Name = "WindowFrame", Size = size, Position = position, AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = Theme.BackgroundColor, BorderSizePixel = 0, Parent = self.ScreenGui, ZIndex = ZINDEX_BASE, ClipsDescendants = true,
 	})
 	Create("UICorner", { CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = self.WindowFrame })
-	Create("UIGradient", { Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255)), Transparency = NumberSequence.new(0.97, 0.99), Rotation = 90, Parent = self.WindowFrame })
+	
+	-- ##################################################################
+	-- # CORREÇÃO 1: O UIGradient que causava a transparência foi REMOVIDO.
+	-- ##################################################################
+	-- Create("UIGradient", { ... }) -- REMOVED
 
 	local TitleBar = Create("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = self.WindowFrame, ZIndex = ZINDEX_BASE + 1 })
 	local TitleLabel = Create("TextLabel", { Name = "TitleLabel", Size = UDim2.new(1, -70, 1, 0), Position = UDim2.fromOffset(10, 0), BackgroundTransparency = 1, Font = Theme.FontTitle, TextColor3 = Theme.TextColor, Text = "  > " .. title, TextXAlignment = Enum.TextXAlignment.Left, TextSize = 15, Parent = TitleBar, ZIndex = ZINDEX_BASE + 2 })
@@ -86,18 +90,29 @@ function ModernUI.CreateWindow(options)
 	})
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Parent = WindowButtonsFrame})
 
-	local CloseButton = Create("TextButton", { Name = "Close", Size = UDim2.fromOffset(32, 32), BackgroundColor3 = Theme.AccentColor1, Text = "✕", Font = Theme.FontTitle, TextColor3 = Theme.TextColor, TextSize = 16, Parent = WindowButtonsFrame, AutoButtonColor = false })
-	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {BackgroundColor3 = Theme.CloseColor}) end)
-	CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {BackgroundColor3 = Theme.AccentColor1}) end)
+	-- ##################################################################
+	-- # CORREÇÃO 2: Botões agora são transparentes por padrão.         #
+	-- ##################################################################
+	local CloseButton = Create("TextButton", { Name = "Close", Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Text = "✕", Font = Theme.FontTitle, TextColor3 = Theme.TextColor, TextSize = 16, Parent = WindowButtonsFrame, AutoButtonColor = false })
+	local MinimizeButton = Create("TextButton", { Name = "Minimize", Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Text = "—", Font = Theme.FontTitle, TextColor3 = Theme.TextColor, TextSize = 16, Parent = WindowButtonsFrame, AutoButtonColor = false })
+	
+	-- ANTES (comentado para referência):
+	-- CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {BackgroundColor3 = Theme.CloseColor}) end)
+	-- CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {BackgroundColor3 = Theme.AccentColor1}) end)
+	
+	-- DEPOIS (anima a transparência para o fundo aparecer/desaparecer):
+	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {BackgroundColor3 = Theme.CloseColor, BackgroundTransparency = 0}) end)
+	CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {BackgroundTransparency = 1}) end)
 	CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
 	
-	local MinimizeButton = Create("TextButton", { Name = "Minimize", Size = UDim2.fromOffset(32, 32), BackgroundColor3 = Theme.AccentColor1, Text = "—", Font = Theme.FontTitle, TextColor3 = Theme.TextColor, TextSize = 16, Parent = WindowButtonsFrame, AutoButtonColor = false })
+	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {BackgroundColor3 = Theme.AccentColor2, BackgroundTransparency = 0}) end)
+	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {BackgroundTransparency = 1}) end)
+	
 	local isMinimized = false
-	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {BackgroundColor3 = Theme.AccentColor2}) end)
-	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {BackgroundColor3 = Theme.AccentColor1}) end)
 	MinimizeButton.MouseButton1Click:Connect(function()
 		isMinimized = not isMinimized
 		self.Container.Visible = not isMinimized
+		-- A linha abaixo foi corrigida para usar o 'size' capturado no início da função
 		local minimizedSize = UDim2.new(size.X.Scale, size.X.Offset, 0, TitleBar.AbsoluteSize.Y)
 		Animate(self.WindowFrame, {Size = isMinimized and minimizedSize or size})
 	end)
