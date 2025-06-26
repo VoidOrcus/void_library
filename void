@@ -2,7 +2,7 @@
 	ModernUI Library
 	Autor: VoidOrcus (com assistência da IA Gemini)
 	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais.
-	Versão: 2.1 - Corrigido bug de posicionamento e ZIndex que escondia elementos.
+	Versão: 2.2 - CORREÇÃO CRÍTICA: Removido layout fantasma que escondia o conteúdo das abas.
 ]]
 
 local ModernUI = {}
@@ -75,15 +75,13 @@ function ModernUI.CreateWindow(options)
 	Create("UIStroke", { Thickness = 1, Color = Theme.AccentColor1, Parent = self.WindowFrame })
 	
 	-- ##################################################################
-	-- # CORREÇÃO DE ZINDEX E LAYOUT                                    #
+	-- # CORREÇÃO DEFINITIVA DO BUG DE LAYOUT                           #
 	-- ##################################################################
 	
 	self.Container = Create("Frame", { Name = "Container", Size = UDim2.new(1, 0, 1, -32), Position = UDim2.fromOffset(0, 32), BackgroundTransparency = 1, Parent = self.WindowFrame, ZIndex = 1 })
 	
-	-- REMOVIDO: O UIListLayout e UIPadding que estavam aqui foram removidos para evitar conflitos.
-	-- Create("UIListLayout", { ... Parent = self.Container }) -- REMOVED
-	-- Create("UIPadding", { ... Parent = self.Container }) -- REMOVED
-
+	-- As linhas de UIListLayout e UIPadding que estavam aqui foram REMOVIDAS.
+	
 	self.PageContainer = Create("Frame", { Name = "PageContainer", Size = UDim2.new(1, 0, 1, -40), Position = UDim2.fromOffset(0, 40), BackgroundTransparency = 1, ClipsDescendants = true, Parent = self.Container, ZIndex = 2 })
 	self.TabFrame = Create("Frame", { Name = "TabFrame", Size = UDim2.new(1, 0, 0, 35), BackgroundTransparency = 1, Parent = self.Container, ZIndex = 3 })
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 5), Parent = self.TabFrame })
@@ -94,7 +92,6 @@ function ModernUI.CreateWindow(options)
 	local WindowButtonsFrame = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(64, 32), Position = UDim2.new(1, -64, 0, 0), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 6 })
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Parent = WindowButtonsFrame})
 
-	-- O ZIndex dos botões é herdado do WindowButtonsFrame, que agora tem a maior prioridade.
 	local CloseButton = Create("ImageButton", { Name = "Close", Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Image = "rbxassetid://138186698594149", ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame })
 	local MinimizeButton = Create("ImageButton", { Name = "Minimize", Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Image = "rbxassetid://134256276414393", ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame })
 
@@ -136,13 +133,13 @@ function ModernUI.CreateWindow(options)
 end
 
 --================================================================
--- SISTEMA DE ABAS (sem alterações, mas depende da estrutura corrigida)
+-- SISTEMA DE ABAS
 --================================================================
 function ModernUI:SwitchToTab(pageIndex) if not self.Pages[pageIndex] or self.ActiveTabIndex==pageIndex then return end;local oldPage=self.Pages[self.ActiveTabIndex];local newPage=self.Pages[pageIndex];self.ActiveTabIndex=pageIndex;Animate(oldPage,{GroupTransparency=1},0.15);task.wait(0.15);oldPage.Visible=false;self.mainListLayout.Parent=nil;self.mainPadding.Parent=nil;newPage.Visible=true;newPage.GroupTransparency=1;self.mainListLayout.Parent=newPage;self.mainPadding.Parent=newPage;Animate(newPage,{GroupTransparency=0},0.15);for i,button in ipairs(self.Tabs)do local isSelected=(i==pageIndex);local goalColor=isSelected and Theme.TextEmphasizedColor or Theme.TextColor;local goalBgColor=isSelected and Theme.AccentColor1 or Theme.BackgroundColor;Animate(button,{TextColor3=goalColor,BackgroundColor3=goalBgColor})end end
 function ModernUI:AddTab(tabName) local tabIndex=#self.Tabs+1;local page=Create("Frame",{Name=tabName.."Page",Size=UDim2.new(1,0,1,0),BackgroundColor3=Theme.AccentColor1,BackgroundTransparency=0.5,ClipsDescendants=true,Visible=(tabIndex==1),GroupTransparency=(tabIndex==1)and 0 or 1,Parent=self.PageContainer});Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=page});table.insert(self.Pages,page);local tabButton=Create("TextButton",{Name=tabName,Text=tabName,Size=UDim2.new(0,120,1,-4),Font=Theme.FontBody,TextSize=15,Parent=self.TabFrame,AutoButtonColor=false});Create("UICorner",{CornerRadius=UDim.new(0,4),Parent=tabButton});table.insert(self.Tabs,tabButton);tabButton.MouseButton1Click:Connect(function()self:SwitchToTab(tabIndex)end);if tabIndex==1 then self.mainListLayout.Parent=page;self.mainPadding.Parent=page;self:SwitchToTab(1)end;local tabObject=setmetatable({},Tab);tabObject.Window=self;tabObject.Page=page;return tabObject end
 
 --================================================================
--- COMPONENTES (sem alterações)
+-- COMPONENTES
 --================================================================
 function ModernUI:AddLabel(options) options=options or {}; local label=Create("TextLabel",{Name="Label",Text=options.Title or"Label",Font=options.Font or Theme.FontBody,TextSize=options.TextSize or 16,TextColor3=options.Color or Theme.TextColor,TextXAlignment=Enum.TextXAlignment.Left,Size=UDim2.new(1,0,0,options.TextSize or 16),BackgroundTransparency=1,Parent=self.mainListLayout.Parent,LayoutOrder=options.Order or 0}); if options.Animate then local originalPos=label.Position;label.Position=originalPos+UDim2.fromOffset(0,10);label.TextTransparency=1;Animate(label,{Position=originalPos,TextTransparency=0},0.5)end;return label end
 function ModernUI:AddButton(options) options=options or {}; local button=Create("TextButton",{Name="Button",Text=options.Title or"Button",Font=Theme.FontBody,TextSize=16,TextColor3=Theme.TextEmphasizedColor,BackgroundColor3=Theme.AccentColor1,Size=UDim2.new(1,0,0,38),Parent=self.mainListLayout.Parent,LayoutOrder=options.Order or 0,AutoButtonColor=false});Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius-2),Parent=button});button.MouseEnter:Connect(function()Animate(button,{BackgroundColor3=Theme.PrimaryColor, TextColor3 = Color3.new(1,1,1)})end);button.MouseLeave:Connect(function()Animate(button,{BackgroundColor3=Theme.AccentColor1, TextColor3 = Theme.TextEmphasizedColor})end);button.MouseButton1Click:Connect(function()if options.Callback and type(options.Callback)=="function"then task.spawn(options.Callback)end;local shrinkTween=Animate(button,{Size=UDim2.new(1,0,0,36)},0.1);shrinkTween.Completed:Connect(function()Animate(button,{Size=UDim2.new(1,0,0,38)},0.1)end)end);return button end
