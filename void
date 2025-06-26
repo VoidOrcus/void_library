@@ -2,7 +2,7 @@
 	ModernUI Library
 	Autor: VoidOrcus (com assistência da IA Gemini)
 	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais.
-	Versão: 1.4 - Corrigido bug de fundo transparente e visibilidade dos botões de janela.
+	Versão: 1.5 - Tema "Solarized Dark" implementado, com nova paleta de cores e bordas.
 ]]
 
 local ModernUI = {}
@@ -17,18 +17,23 @@ local CoreGui = game:GetService("CoreGui")
 local ZINDEX_BASE = 100
 
 --================================================================
--- CONFIGURAÇÃO DE TEMA
+-- CONFIGURAÇÃO DE TEMA (Novo Tema "Solarized Dark")
 --================================================================
 local Theme = {
-	BackgroundColor = Color3.fromRGB(25, 28, 32),
-	AccentColor1 = Color3.fromRGB(35, 38, 42),
-	AccentColor2 = Color3.fromRGB(45, 48, 52),
-	PrimaryColor = Color3.fromRGB(50, 220, 150),
-	TextColor = Color3.fromRGB(240, 240, 245),
-	CloseColor = Color3.fromRGB(255, 90, 90),
+	--- Cores base do Solarized Dark ---
+	BackgroundColor = Color3.fromRGB(0, 43, 54),      -- #002b36 (Fundo principal, azul-escuro profundo)
+	AccentColor1 = Color3.fromRGB(7, 54, 66),       -- #073642 (Fundo de elementos, como a barra de título)
+	TextColor = Color3.fromRGB(131, 148, 150),      -- #839496 (Cor principal do texto, ciano-acinzentado)
+	TextEmphasizedColor = Color3.fromRGB(147, 161, 161), -- #93a1a1 (Cor para títulos e textos importantes)
+	
+	--- Cores de destaque do Solarized Dark ---
+	PrimaryColor = Color3.fromRGB(38, 139, 210),    -- #268bd2 (Azul para destaques e hovers)
+	CloseColor = Color3.fromRGB(220, 50, 47),       -- #dc322f (Vermelho para o botão de fechar)
+	
+	--- Estilos de Fonte e Bordas ---
 	FontTitle = Enum.Font.Code,
 	FontBody = Enum.Font.Code,
-	CornerRadius = 6,
+	CornerRadius = 4, -- Cantos um pouco mais retos, estilo "desktop"
 	AnimationSpeed = 0.2,
 }
 
@@ -72,52 +77,41 @@ function ModernUI.CreateWindow(options)
 	})
 	Create("UICorner", { CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = self.WindowFrame })
 	
-	-- ##################################################################
-	-- # CORREÇÃO 1: O UIGradient que causava a transparência foi REMOVIDO.
-	-- ##################################################################
-	-- Create("UIGradient", { ... }) -- REMOVED
+	-- NOVO: Borda sutil para dar definição à janela
+	Create("UIStroke", {
+		Thickness = 1,
+		Color = Theme.AccentColor1,
+		Parent = self.WindowFrame
+	})
 
 	local TitleBar = Create("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = self.WindowFrame, ZIndex = ZINDEX_BASE + 1 })
-	local TitleLabel = Create("TextLabel", { Name = "TitleLabel", Size = UDim2.new(1, -70, 1, 0), Position = UDim2.fromOffset(10, 0), BackgroundTransparency = 1, Font = Theme.FontTitle, TextColor3 = Theme.TextColor, Text = "  > " .. title, TextXAlignment = Enum.TextXAlignment.Left, TextSize = 15, Parent = TitleBar, ZIndex = ZINDEX_BASE + 2 })
+	local TitleLabel = Create("TextLabel", { Name = "TitleLabel", Size = UDim2.new(1, -70, 1, 0), Position = UDim2.fromOffset(10, 0), BackgroundTransparency = 1, Font = Theme.FontTitle, TextColor3 = Theme.TextEmphasizedColor, Text = "  > " .. title, TextXAlignment = Enum.TextXAlignment.Left, TextSize = 15, Parent = TitleBar, ZIndex = ZINDEX_BASE + 2 })
 
 	self.Container = Create("Frame", { Name = "Container", Size = UDim2.new(1, 0, 1, -32), Position = UDim2.fromOffset(0, 32), BackgroundTransparency = 1, Parent = self.WindowFrame, ZIndex = ZINDEX_BASE + 1 })
 	Create("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center, Parent = self.Container })
 	Create("UIPadding", { PaddingTop = UDim.new(0, 15), PaddingBottom = UDim.new(0, 15), PaddingLeft = UDim.new(0, 15), PaddingRight = UDim.new(0, 15), Parent = self.Container })
 
-	-- --- BOTÕES DA JANELA (MINIMIZAR/FECHAR) ---
-	local WindowButtonsFrame = Create("Frame", {
-		Name = "WindowButtons", Size = UDim2.fromOffset(64, 32), Position = UDim2.new(1, -64, 0, 0), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = ZINDEX_BASE + 2
-	})
+	local WindowButtonsFrame = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(64, 32), Position = UDim2.new(1, -64, 0, 0), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = ZINDEX_BASE + 2 })
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Parent = WindowButtonsFrame})
 
-	-- ##################################################################
-	-- # CORREÇÃO 2: Botões agora são transparentes por padrão.         #
-	-- ##################################################################
 	local CloseButton = Create("TextButton", { Name = "Close", Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Text = "✕", Font = Theme.FontTitle, TextColor3 = Theme.TextColor, TextSize = 16, Parent = WindowButtonsFrame, AutoButtonColor = false })
 	local MinimizeButton = Create("TextButton", { Name = "Minimize", Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Text = "—", Font = Theme.FontTitle, TextColor3 = Theme.TextColor, TextSize = 16, Parent = WindowButtonsFrame, AutoButtonColor = false })
 	
-	-- ANTES (comentado para referência):
-	-- CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {BackgroundColor3 = Theme.CloseColor}) end)
-	-- CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {BackgroundColor3 = Theme.AccentColor1}) end)
-	
-	-- DEPOIS (anima a transparência para o fundo aparecer/desaparecer):
-	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {BackgroundColor3 = Theme.CloseColor, BackgroundTransparency = 0}) end)
+	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {BackgroundColor3 = Theme.CloseColor, BackgroundTransparency = 0.8}) end)
 	CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {BackgroundTransparency = 1}) end)
 	CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
 	
-	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {BackgroundColor3 = Theme.AccentColor2, BackgroundTransparency = 0}) end)
+	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5}) end)
 	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {BackgroundTransparency = 1}) end)
 	
 	local isMinimized = false
 	MinimizeButton.MouseButton1Click:Connect(function()
 		isMinimized = not isMinimized
 		self.Container.Visible = not isMinimized
-		-- A linha abaixo foi corrigida para usar o 'size' capturado no início da função
 		local minimizedSize = UDim2.new(size.X.Scale, size.X.Offset, 0, TitleBar.AbsoluteSize.Y)
 		Animate(self.WindowFrame, {Size = isMinimized and minimizedSize or size})
 	end)
 	
-	-- Funcionalidade de Arrastar
 	local dragging = false; local dragStart, startPos
 	TitleBar.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -136,10 +130,12 @@ function ModernUI.CreateWindow(options)
 	return self
 end
 
--- --- COMPONENTES (O código dos componentes permanece o mesmo) ---
+--================================================================
+-- COMPONENTES DA UI
+--================================================================
 function ModernUI:AddLabel(options) options=options or {}; local label=Create("TextLabel",{Name="Label",Text=options.Title or"Label",Font=options.Font or Theme.FontBody,TextSize=options.TextSize or 16,TextColor3=options.Color or Theme.TextColor,TextXAlignment=Enum.TextXAlignment.Left,Size=UDim2.new(1,0,0,options.TextSize or 16),BackgroundTransparency=1,Parent=self.Container,LayoutOrder=options.Order or 0}); if options.Animate then local originalPos=label.Position;label.Position=originalPos+UDim2.fromOffset(0,10);label.TextTransparency=1;Animate(label,{Position=originalPos,TextTransparency=0},0.5)end;return label end
-function ModernUI:AddButton(options) options=options or {}; local button=Create("TextButton",{Name="Button",Text=options.Title or"Button",Font=Theme.FontBody,TextSize=16,TextColor3=Theme.TextColor,BackgroundColor3=Theme.AccentColor2,Size=UDim2.new(1,0,0,38),Parent=self.Container,LayoutOrder=options.Order or 0,AutoButtonColor=false});Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius-2),Parent=button});button.MouseEnter:Connect(function()Animate(button,{BackgroundColor3=Theme.PrimaryColor})end);button.MouseLeave:Connect(function()Animate(button,{BackgroundColor3=Theme.AccentColor2})end);button.MouseButton1Click:Connect(function()if options.Callback and type(options.Callback)=="function"then task.spawn(options.Callback)end;local shrinkTween=Animate(button,{Size=UDim2.new(1,0,0,36)},0.1);shrinkTween.Completed:Connect(function()Animate(button,{Size=UDim2.new(1,0,0,38)},0.1)end)end);return button end
-function ModernUI:AddSlider(options) options=options or{};local min,max,default=options.Min or 0,options.Max or 100,options.Default or 50;local value=default;local holder=Create("Frame",{Name="SliderHolder",Size=UDim2.new(1,0,0,50),BackgroundTransparency=1,Parent=self.Container,LayoutOrder=options.Order or 0});local titleLabel=self:AddLabel({Title=options.Title or"Slider",Parent=holder});titleLabel.Position=UDim2.fromOffset(0,0);titleLabel.Parent=holder;local valueLabel=self:AddLabel({Title=tostring(math.floor(default)),Parent=holder,TextXAlignment=Enum.TextXAlignment.Right});valueLabel.Position=UDim2.fromOffset(0,0);valueLabel.Parent=holder;valueLabel.TextXAlignment=Enum.TextXAlignment.Right;local track=Create("Frame",{Name="Track",Size=UDim2.new(1,0,0,6),Position=UDim2.new(0,0,0,30),BackgroundColor3=Theme.AccentColor1,Parent=holder});Create("UICorner",{Parent=track});local progress=Create("Frame",{Name="Progress",Size=UDim2.new((default-min)/(max-min),0,1,0),BackgroundColor3=Theme.PrimaryColor,Parent=track});Create("UICorner",{Parent=progress});local thumb=Create("TextButton",{Name="Thumb",Size=UDim2.fromOffset(18,18),Position=UDim2.new(progress.Size.X.Scale,-9,0.5,-9),BackgroundColor3=Theme.TextColor,Parent=track,ZIndex=ZINDEX_BASE+5,Text=""});Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=thumb});local function UpdateSlider(inputX)local relativeX=inputX-track.AbsolutePosition.X;local percentage=math.clamp(relativeX/track.AbsoluteSize.X,0,1);value=min+(max-min)*percentage;progress.Size=UDim2.new(percentage,0,1,0);thumb.Position=UDim2.new(percentage,-9,0.5,-9);valueLabel.Text=tostring(math.floor(value));if options.Callback then options.Callback(value)end end;thumb.InputBegan:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then local connection=UserInputService.InputChanged:Connect(function(moveInput)if moveInput.UserInputType==Enum.UserInputType.MouseMovement or moveInput.UserInputType==Enum.UserInputType.Touch then UpdateSlider(moveInput.Position.X)end end);local endConn=UserInputService.InputEnded:Connect(function(endInput)if endInput==input then connection:Disconnect();endConn:Disconnect()end end)end end);return holder end
-function ModernUI:AddDropdown(options) options=options or{};local values=options.Values or{"Opção 1","Opção 2"};local default=options.Default or values[1];local isOpen=false;local holder=Create("Frame",{Name="DropdownHolder",Size=UDim2.new(1,0,0,38),BackgroundTransparency=1,Parent=self.Container,LayoutOrder=options.Order or 0,ZIndex=ZINDEX_BASE+10});local mainButton=Create("TextButton",{Name="MainButton",Text="  "..tostring(default),Font=Theme.FontBody,TextSize=16,TextColor3=Theme.TextColor,BackgroundColor3=Theme.AccentColor2,Size=UDim2.new(1,0,1,0),Parent=holder,TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false});Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius-2),Parent=mainButton});local arrow=Create("ImageLabel",{Image="rbxassetid://3926305904",ImageColor3=Theme.TextColor,Size=UDim2.fromOffset(20,20),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,-10,0.5,0),BackgroundTransparency=1,Parent=mainButton});local dropdownList=Create("Frame",{Name="DropdownList",Size=UDim2.new(1,0,0,0),Position=UDim2.new(0,0,1,5),BackgroundColor3=Theme.AccentColor2,BorderSizePixel=0,ClipsDescendants=true,Visible=false,Parent=holder,ZIndex=ZINDEX_BASE+9});Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius-2),Parent=dropdownList});Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,2)},dropdownList);local function ToggleDropdown()isOpen=not isOpen;dropdownList.Visible=true;local listHeight=(#values*32)+((#values-1)*2);Animate(arrow,{Rotation=isOpen and 180 or 0});Animate(dropdownList,{Size=UDim2.new(1,0,0,isOpen and listHeight or 0)},0.3);if not isOpen then task.wait(0.3);dropdownList.Visible=false end end;for i,v in ipairs(values)do local itemButton=Create("TextButton",{Name=v,Text="  "..tostring(v),LayoutOrder=i,Font=Theme.FontBody,TextSize=15,TextColor3=Theme.TextColor,BackgroundColor3=Theme.AccentColor2,Size=UDim2.new(1,0,0,32),Parent=dropdownList,TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false});itemButton.MouseEnter:Connect(function()Animate(itemButton,{BackgroundColor3=Theme.PrimaryColor})end);itemButton.MouseLeave:Connect(function()Animate(itemButton,{BackgroundColor3=Theme.AccentColor2})end);itemButton.MouseButton1Click:Connect(function()mainButton.Text="  "..tostring(v);if options.Callback then task.spawn(options.Callback,v)end;ToggleDropdown()end)end;mainButton.MouseButton1Click:Connect(ToggleDropdown);return holder end
+function ModernUI:AddButton(options) options=options or {}; local button=Create("TextButton",{Name="Button",Text=options.Title or"Button",Font=Theme.FontBody,TextSize=16,TextColor3=Theme.TextEmphasizedColor,BackgroundColor3=Theme.AccentColor1,Size=UDim2.new(1,0,0,38),Parent=self.Container,LayoutOrder=options.Order or 0,AutoButtonColor=false});Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius-2),Parent=button});button.MouseEnter:Connect(function()Animate(button,{BackgroundColor3=Theme.PrimaryColor, TextColor3 = Color3.new(1,1,1)})end);button.MouseLeave:Connect(function()Animate(button,{BackgroundColor3=Theme.AccentColor1, TextColor3 = Theme.TextEmphasizedColor})end);button.MouseButton1Click:Connect(function()if options.Callback and type(options.Callback)=="function"then task.spawn(options.Callback)end;local shrinkTween=Animate(button,{Size=UDim2.new(1,0,0,36)},0.1);shrinkTween.Completed:Connect(function()Animate(button,{Size=UDim2.new(1,0,0,38)},0.1)end)end);return button end
+function ModernUI:AddSlider(options) options=options or{};local min,max,default=options.Min or 0,options.Max or 100,options.Default or 50;local value=default;local holder=Create("Frame",{Name="SliderHolder",Size=UDim2.new(1,0,0,50),BackgroundTransparency=1,Parent=self.Container,LayoutOrder=options.Order or 0});local titleLabel=self:AddLabel({Title=options.Title or"Slider",Parent=holder});titleLabel.Position=UDim2.fromOffset(0,0);titleLabel.Parent=holder;local valueLabel=self:AddLabel({Title=tostring(math.floor(default)),Parent=holder,TextXAlignment=Enum.TextXAlignment.Right});valueLabel.Position=UDim2.fromOffset(0,0);valueLabel.Parent=holder;valueLabel.TextXAlignment=Enum.TextXAlignment.Right;local track=Create("Frame",{Name="Track",Size=UDim2.new(1,0,0,6),Position=UDim2.new(0,0,0,30),BackgroundColor3=Theme.AccentColor1,Parent=holder});Create("UICorner",{Parent=track});local progress=Create("Frame",{Name="Progress",Size=UDim2.new((default-min)/(max-min),0,1,0),BackgroundColor3=Theme.PrimaryColor,Parent=track});Create("UICorner",{Parent=progress});local thumb=Create("TextButton",{Name="Thumb",Size=UDim2.fromOffset(18,18),Position=UDim2.new(progress.Size.X.Scale,-9,0.5,-9),BackgroundColor3=Theme.TextEmphasizedColor,Parent=track,ZIndex=ZINDEX_BASE+5,Text=""});Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=thumb});local function UpdateSlider(inputX)local relativeX=inputX-track.AbsolutePosition.X;local percentage=math.clamp(relativeX/track.AbsoluteSize.X,0,1);value=min+(max-min)*percentage;progress.Size=UDim2.new(percentage,0,1,0);thumb.Position=UDim2.new(percentage,-9,0.5,-9);valueLabel.Text=tostring(math.floor(value));if options.Callback then options.Callback(value)end end;thumb.InputBegan:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then local connection=UserInputService.InputChanged:Connect(function(moveInput)if moveInput.UserInputType==Enum.UserInputType.MouseMovement or moveInput.UserInputType==Enum.UserInputType.Touch then UpdateSlider(moveInput.Position.X)end end);local endConn=UserInputService.InputEnded:Connect(function(endInput)if endInput==input then connection:Disconnect();endConn:Disconnect()end end)end end);return holder end
+function ModernUI:AddDropdown(options) options=options or{};local values=options.Values or{"Opção 1","Opção 2"};local default=options.Default or values[1];local isOpen=false;local holder=Create("Frame",{Name="DropdownHolder",Size=UDim2.new(1,0,0,38),BackgroundTransparency=1,Parent=self.Container,LayoutOrder=options.Order or 0,ZIndex=ZINDEX_BASE+10});local mainButton=Create("TextButton",{Name="MainButton",Text="  "..tostring(default),Font=Theme.FontBody,TextSize=16,TextColor3=Theme.TextEmphasizedColor,BackgroundColor3=Theme.AccentColor1,Size=UDim2.new(1,0,1,0),Parent=holder,TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false});Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius-2),Parent=mainButton});local arrow=Create("ImageLabel",{Image="rbxassetid://3926305904",ImageColor3=Theme.TextColor,Size=UDim2.fromOffset(20,20),AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(1,-10,0.5,0),BackgroundTransparency=1,Parent=mainButton});local dropdownList=Create("Frame",{Name="DropdownList",Size=UDim2.new(1,0,0,0),Position=UDim2.new(0,0,1,5),BackgroundColor3=Theme.AccentColor1,BorderSizePixel=0,ClipsDescendants=true,Visible=false,Parent=holder,ZIndex=ZINDEX_BASE+9});Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius-2),Parent=dropdownList});Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,2)},dropdownList);local function ToggleDropdown()isOpen=not isOpen;dropdownList.Visible=true;local listHeight=(#values*32)+((#values-1)*2);Animate(arrow,{Rotation=isOpen and 180 or 0});Animate(dropdownList,{Size=UDim2.new(1,0,0,isOpen and listHeight or 0)},0.3);if not isOpen then task.wait(0.3);dropdownList.Visible=false end end;for i,v in ipairs(values)do local itemButton=Create("TextButton",{Name=v,Text="  "..tostring(v),LayoutOrder=i,Font=Theme.FontBody,TextSize=15,TextColor3=Theme.TextEmphasizedColor,BackgroundColor3=Theme.AccentColor1,Size=UDim2.new(1,0,0,32),Parent=dropdownList,TextXAlignment=Enum.TextXAlignment.Left,AutoButtonColor=false});itemButton.MouseEnter:Connect(function()Animate(itemButton,{BackgroundColor3=Theme.PrimaryColor, TextColor3=Color3.new(1,1,1)})end);itemButton.MouseLeave:Connect(function()Animate(itemButton,{BackgroundColor3=Theme.AccentColor1, TextColor3=Theme.TextEmphasizedColor})end);itemButton.MouseButton1Click:Connect(function()mainButton.Text="  "..tostring(v);if options.Callback then task.spawn(options.Callback,v)end;ToggleDropdown()end)end;mainButton.MouseButton1Click:Connect(ToggleDropdown);return holder end
 
 return ModernUI
