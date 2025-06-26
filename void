@@ -2,7 +2,7 @@
  	ModernUI Library 
  	Autor: VoidOrcus (com assistência da IA Gemini) 
  	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais. 
- 	Versão: 3.2 - Centralização vertical do conteúdo das abas.
+ 	Versão: 3.3 - Centralização vertical dos botões das abas na barra lateral.
  ]] 
 
 local ModernUI = {}
@@ -91,10 +91,14 @@ function ModernUI.CreateWindow(options)
 
 	self.Sidebar = Create("Frame", { Name = "Sidebar", Size = UDim2.fromOffset(140, 0), SizeConstraint = Enum.SizeConstraint.RelativeYY, BackgroundColor3 = Theme.BackgroundColor, Transparency = 0.3, Parent = MainContent })
     
+	-- [!] MUDANÇA AQUI: O contêiner dos botões agora tem tamanho automático e é centralizado.
     self.TabButtonsContainer = Create("Frame", {
         Name = "TabButtonsContainer",
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2.new(1, 0, 0, 0), -- Largura 100%, altura automática
+		AutomaticSize = Enum.AutomaticSize.Y,
         BackgroundTransparency = 1,
+		Position = UDim2.fromScale(0.5, 0.5),
+        AnchorPoint = Vector2.new(0.5, 0.5),
         Parent = self.Sidebar
     })
 	
@@ -102,7 +106,6 @@ function ModernUI.CreateWindow(options)
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 5),
         HorizontalAlignment = Enum.HorizontalAlignment.Center,
-        VerticalAlignment = Enum.VerticalAlignment.Center,
         Parent = self.TabButtonsContainer
     })
 	Create("UIPadding", { PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0,10), Parent = self.TabButtonsContainer })
@@ -182,7 +185,6 @@ function ModernUI:AddTab(tabName)
 	local page = Create("Frame", { Name = tabName .. "Page", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, ClipsDescendants = true, Visible = (tabIndex == 1), Parent = self.PageContainer })
 	local canvas = Create("CanvasGroup", { Name = "PageCanvas", Size = UDim2.new(1,0,1,0), BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5, Parent = page, GroupTransparency = (tabIndex == 1) and 0 or 1, })
 	Create("UICorner", {CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = canvas})
-	-- [!] MUDANÇA AQUI: Adicionado VerticalAlignment para centralizar o conteúdo da página
 	Create("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Center, Parent = canvas })
 	Create("UIPadding", { PaddingTop = UDim.new(0, 15), PaddingBottom = UDim.new(0, 15), PaddingLeft = UDim.new(0, 15), PaddingRight = UDim.new(0, 15), Parent = canvas })
 	table.insert(self.Pages, page)
