@@ -146,7 +146,7 @@ function ModernUI.CreateWindow(options)
 	end
 	
 	task.spawn(function()
-		local minIcon, closeIcon = "rbxassetid://134256276414393", "rbxassetid://138186698594149"
+		local minIcon, closeIcon = "rbxassetid://102337677895470", "rbxassetid://96238650693315"
 		local success, _ = pcall(function() game:GetService("ContentProvider"):PreloadAsync({minIcon, closeIcon}) end)
 		
 		if success then
