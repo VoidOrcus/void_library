@@ -2,7 +2,7 @@
  	ModernUI Library 
  	Autor: VoidOrcus (com assistência da IA Gemini) 
  	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais. 
- 	Versão: 5.2 - Corrigido botões de fechar/minimizar com IDs válidos e ZIndex.
+ 	Versão: 5.3 - Fundo com imagem, efeito de hover melhorado e correção no sistema de arrastar.
 ]]
 
 local ModernUI = {}
@@ -74,9 +74,25 @@ function ModernUI.CreateWindow(options)
 
 	self.WindowFrame = Create("Frame", {
 		Name = "WindowFrame", Size = size, Position = position, AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundColor3 = Theme.BackgroundColor, BackgroundTransparency = 0.6,
+		BackgroundColor3 = Theme.BackgroundColor, 
+		BackgroundTransparency = 1, -- [[ MODIFICAÇÃO ]] -- Fundo principal fica transparente
 		BorderSizePixel = 0, Parent = self.ScreenGui, ClipsDescendants = true
 	})
+	
+	-- [[ MODIFICAÇÃO ]] -- Adicionado background com imagem transparente
+	local BackgroundImage = Create("ImageLabel", {
+		Name = "BackgroundImage",
+		Size = UDim2.new(1, 0, 1, 0),
+		Image = "rbxassetid://105128443123746",
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(10, 10, 110, 110), -- Evita que a borda da imagem estique
+		ImageTransparency = 0.9,
+		BackgroundColor3 = Theme.BackgroundColor,
+		BackgroundTransparency = 0.6,
+		ZIndex = 0,
+		Parent = self.WindowFrame
+	})
+
 	Create("UICorner", { CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = self.WindowFrame })
 	Create("UIStroke", { Thickness = 1, Color = Theme.AccentColor1, Transparency = 0.5, Parent = self.WindowFrame })
 	
@@ -135,148 +151,138 @@ function ModernUI.CreateWindow(options)
 	-- BOTÕES DA JANELA CORRIGIDOS
 	local WindowButtonsFrame = Create("Frame", { 
 		Name = "WindowButtons", 
-		Size = UDim2.fromOffset(70, 32), 
-		Position = UDim2.new(1, -70, 0, 0), 
+		Size = UDim2.fromOffset(80, 32), -- Aumentado para dar espaço ao efeito de hover
+		Position = UDim2.new(1, -80, 0, 0), 
 		BackgroundTransparency = 1, 
 		Parent = TitleBar, 
-		ZIndex = 10  -- ZIndex mais alto
+		ZIndex = 10
 	})
 	Create("UIListLayout", { 
 		FillDirection = Enum.FillDirection.Horizontal, 
 		HorizontalAlignment = Enum.HorizontalAlignment.Right, 
 		VerticalAlignment = Enum.VerticalAlignment.Center, 
+		Padding = UDim.new(0, 5),
 		Parent = WindowButtonsFrame
 	})
 	
 	-- BOTÃO MINIMIZAR (usando TextButton como fallback)
 	local MinimizeButton = Create("TextButton", { 
 		Name = "Minimize", 
-		Size = UDim2.fromOffset(32, 32), 
-		BackgroundColor3 = Color3.fromRGB(40, 40, 40),
-		BackgroundTransparency = 0.3,
-		BorderSizePixel = 0,
-		Text = "–", -- Caractere de traço
-		Font = Enum.Font.SourceSansBold,
-		TextSize = 18,
-		TextColor3 = Theme.TextColor, 
-		Parent = WindowButtonsFrame,
-		ZIndex = 11,
-		AutoButtonColor = false
+		Size = UDim2.fromOffset(28, 28),
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0),
+		BackgroundTransparency = 1,
+		Text = "–", Font = Enum.Font.SourceSansBold, TextSize = 18, TextColor3 = Theme.TextColor, 
+		Parent = WindowButtonsFrame, ZIndex = 11, AutoButtonColor = false
 	})
-	Create("UICorner", { CornerRadius = UDim.new(0, 3), Parent = MinimizeButton })
 	
 	-- BOTÃO FECHAR (usando TextButton como fallback)
 	local CloseButton = Create("TextButton", { 
 		Name = "Close", 
-		Size = UDim2.fromOffset(32, 32), 
-		BackgroundColor3 = Color3.fromRGB(40, 40, 40),
-		BackgroundTransparency = 0.3,
-		BorderSizePixel = 0,
-		Text = "✕", -- Caractere X
-		Font = Enum.Font.SourceSansBold,
-		TextSize = 14,
-		TextColor3 = Theme.TextColor, 
-		Parent = WindowButtonsFrame,
-		ZIndex = 11,
-		AutoButtonColor = false
+		Size = UDim2.fromOffset(28, 28), 
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0),
+		BackgroundTransparency = 1,
+		Text = "✕", Font = Enum.Font.SourceSansBold, TextSize = 14, TextColor3 = Theme.TextColor, 
+		Parent = WindowButtonsFrame, ZIndex = 11, AutoButtonColor = false
 	})
-	Create("UICorner", { CornerRadius = UDim.new(0, 3), Parent = CloseButton })
 	
 	-- ALTERNATIVA: Tentar usar ImageButtons com IDs válidos
 	task.spawn(function()
-		-- Testar se as imagens carregam
-		local testImage1 = Create("ImageLabel", { Image = "rbxassetid://134256276414393", Parent = workspace })
-		local testImage2 = Create("ImageLabel", { Image = "rbxassetid://138186698594149", Parent = workspace })
+		local minIcon, closeIcon = "rbxassetid://134256276414393", "rbxassetid://138186698594149"
+		local success, _ = pcall(function()
+			-- A forma mais confiável de testar é usar ContentProvider
+			game:GetService("ContentProvider"):PreloadAsync({minIcon, closeIcon})
+		end)
 		
-		task.wait(2) -- Aguardar carregamento
-		
-		if testImage1.Image ~= "" and testImage2.Image ~= "" then
-			-- Se as imagens carregaram, substituir os TextButtons
+		if success then
 			MinimizeButton:Destroy()
 			CloseButton:Destroy()
 			
 			MinimizeButton = Create("ImageButton", { 
-				Name = "Minimize", 
-				Size = UDim2.fromOffset(32, 32), 
-				BackgroundTransparency = 1,
-				Image = "rbxassetid://134256276414393", -- ID do ícone de minimizar
-				ImageColor3 = Theme.TextColor,
-				Parent = WindowButtonsFrame,
-				ZIndex = 11
+				Name = "Minimize", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1,
+				Image = minIcon, ImageColor3 = Theme.TextColor,
+				Parent = WindowButtonsFrame, ZIndex = 11,
+				AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0)
 			})
 			
 			CloseButton = Create("ImageButton", { 
-				Name = "Close", 
-				Size = UDim2.fromOffset(32, 32), 
-				BackgroundTransparency = 1,
-				Image = "rbxassetid://138186698594149", -- ID do ícone de fechar
-				ImageColor3 = Theme.TextColor,
-				Parent = WindowButtonsFrame,
-				ZIndex = 11
+				Name = "Close", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1,
+				Image = closeIcon, ImageColor3 = Theme.TextColor,
+				Parent = WindowButtonsFrame, ZIndex = 11,
+				AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0)
 			})
 			
-			-- Reconectar eventos
-			CloseButton.MouseEnter:Connect(function() 
-				Animate(CloseButton, {ImageColor3 = Theme.CloseColor, BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5}) 
-			end)
-			CloseButton.MouseLeave:Connect(function() 
-				Animate(CloseButton, {ImageColor3 = Theme.TextColor, BackgroundTransparency = 1}) 
-			end)
-			CloseButton.MouseButton1Click:Connect(function() 
-				self.ScreenGui:Destroy() 
-			end)
+			-- [[ MODIFICAÇÃO ]] -- Hover para ImageButton
+			CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.CloseColor, Size = UDim2.fromOffset(32, 32)}) end)
+			CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.TextColor, Size = UDim2.fromOffset(28, 28)}) end)
+			CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
 			
-			MinimizeButton.MouseEnter:Connect(function() 
-				Animate(MinimizeButton, {BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5}) 
-			end)
-			MinimizeButton.MouseLeave:Connect(function() 
-				Animate(MinimizeButton, {BackgroundTransparency = 1}) 
-			end)
+			MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
+			MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
 		end
-		
-		testImage1:Destroy()
-		testImage2:Destroy()
 	end)
 	
-	-- EVENTOS DOS BOTÕES
-	CloseButton.MouseEnter:Connect(function() 
-		Animate(CloseButton, {TextColor3 = Theme.CloseColor, BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0}) 
-	end)
-	CloseButton.MouseLeave:Connect(function() 
-		Animate(CloseButton, {TextColor3 = Theme.TextColor, BackgroundTransparency = 0.3}) 
-	end)
-	CloseButton.MouseButton1Click:Connect(function() 
-		self.ScreenGui:Destroy() 
-	end)
+	-- [[ MODIFICAÇÃO ]] -- Eventos de hover para TextButton (fallback)
+	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {TextColor3 = Theme.CloseColor, Size = UDim2.fromOffset(32, 32)}) end)
+	CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {TextColor3 = Theme.TextColor, Size = UDim2.fromOffset(28, 28)}) end)
+	CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
 	
-	MinimizeButton.MouseEnter:Connect(function() 
-		Animate(MinimizeButton, {BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0}) 
-	end)
-	MinimizeButton.MouseLeave:Connect(function() 
-		Animate(MinimizeButton, {BackgroundTransparency = 0.3}) 
-	end)
+	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
+	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
 	
 	local isMinimized = false
 	MinimizeButton.MouseButton1Click:Connect(function()
 		isMinimized = not isMinimized
-		Sidebar.Visible = not isMinimized
-		ContentSeparator.Visible = not isMinimized
-		self.PageContainer.Visible = not isMinimized
-		local minimizedSize = UDim2.new(size.X.Scale, size.X.Offset, 0, TitleBar.AbsoluteSize.Y)
-		Animate(self.WindowFrame, {Size = isMinimized and minimizedSize or size})
+		local currentSize = self.WindowFrame.Size
+		local titleBarHeight = TitleBar.AbsoluteSize.Y
+		
+		local minimizedSize = UDim2.new(currentSize.X.Scale, currentSize.X.Offset, 0, titleBarHeight)
+		local restoredSize = size
+		
+		Animate(self.WindowFrame, {Size = isMinimized and minimizedSize or restoredSize})
+		
+		task.spawn(function()
+			if not isMinimized then
+				Sidebar.Visible = true
+				ContentSeparator.Visible = true
+				self.PageContainer.Visible = true
+			else
+				task.wait(Theme.AnimationSpeed)
+				Sidebar.Visible = false
+				ContentSeparator.Visible = false
+				self.PageContainer.Visible = false
+			end
+		end)
 	end)
 	
-	-- SISTEMA DE ARRASTAR JANELA
-	local dragging = false; local dragStart, startPos
+	-- [[ MODIFICAÇÃO ]] -- Sistema de arrastar janela (Refatorado e Corrigido)
+	local isDragging = false
+	local dragInput = nil
+	local dragStart = nil
+	local startPos = nil
+	
 	TitleBar.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			dragging = true; dragStart = input.Position; startPos = self.WindowFrame.Position
-			local connection; connection = input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false; connection:Disconnect() end end)
+			isDragging = true
+			dragInput = input
+			dragStart = input.Position
+			startPos = self.WindowFrame.Position
+
+			-- Previne que o input seja processado por outros elementos da UI
+			return Enum.GuiResponse.Capture
 		end
 	end)
+
 	UserInputService.InputChanged:Connect(function(input)
-		if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and dragging then
-			self.WindowFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + (input.Position.X - dragStart.X), startPos.Y.Scale, startPos.Y.Offset + (input.Position.Y - dragStart.Y))
+		if isDragging and input.UserInputType == dragInput.UserInputType then
+			local delta = input.Position - dragStart
+			self.WindowFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+	
+	UserInputService.InputEnded:Connect(function(input)
+		if input == dragInput then
+			isDragging = false
+			dragInput = nil
 		end
 	end)
 	
@@ -284,6 +290,7 @@ function ModernUI.CreateWindow(options)
 	Animate(self.WindowFrame, {Position = position})
 	return self
 end
+
 
 --================================================================
 -- SISTEMA DE ABAS
