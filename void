@@ -2,7 +2,7 @@
  	ModernUI Library 
  	Autor: VoidOrcus (com assistência da IA Gemini) 
  	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais. 
- 	Versão: 5.6 - Restaurada a funcionalidade de arrastar a janela.
+ 	Versão: 5.7 - Lógica de arrastar a janela corrigida com base no feedback do usuário.
 ]]
 
 local ModernUI = {}
@@ -90,7 +90,8 @@ function ModernUI.CreateWindow(options)
 	Create("UICorner", { CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = self.WindowFrame })
 	Create("UIStroke", { Thickness = 1, Color = Theme.AccentColor1, Transparency = 0.5, Parent = self.WindowFrame })
 	
-	local TitleBar = Create("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = self.WindowFrame, ZIndex = 4, Active = true })
+	-- [[ CORREÇÃO ]] -- Removido 'Active = true' para evitar conflitos de input.
+	local TitleBar = Create("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = self.WindowFrame, ZIndex = 4 })
 	local TitleLabel = Create("TextLabel", { Name = "TitleLabel", Size = UDim2.new(1, -70, 1, 0), Position = UDim2.fromOffset(10, 0), BackgroundTransparency = 1, Font = Theme.FontTitle, TextColor3 = Theme.TextEmphasizedColor, Text = "  > " .. title, TextXAlignment = Enum.TextXAlignment.Left, TextSize = 15, Parent = TitleBar, ZIndex = 5 })
 	
 	local Sidebar = Create("Frame", { Name = "Sidebar", Size = UDim2.new(0, 140, 1, -32), Position = UDim2.fromOffset(0, 32), BackgroundColor3 = Theme.BackgroundColor, BackgroundTransparency = 0.3, BorderSizePixel = 0, Parent = self.WindowFrame })
@@ -173,7 +174,6 @@ function ModernUI.CreateWindow(options)
 	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
 	MinimizeButton.MouseButton1Click:Connect(onMinimizeClick)
 	
-	-- [[ CORREÇÃO ]] -- Lógica de arrastar a janela restaurada para a versão funcional.
 	local dragging = false
 	local dragInput = nil
 	local dragStart = nil
@@ -188,8 +188,9 @@ function ModernUI.CreateWindow(options)
 		end
 	end)
 
+	-- [[ CORREÇÃO ]] -- Condição de input corrigida para verificar o movimento do mouse/toque.
 	UserInputService.InputChanged:Connect(function(input)
-		if dragging and dragInput and input.UserInputType == dragInput.UserInputType then
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 			local delta = input.Position - dragStart
 			self.WindowFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 		end
