@@ -2,7 +2,7 @@
  	ModernUI Library 
  	Autor: VoidOrcus (com assistência da IA Gemini) 
  	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais. 
- 	Versão: 5.1 - Corrigido IDs de imagem dos botões de fechar/minimizar.
+ 	Versão: 5.2 - Botões de fechar/minimizar trocados para TextButton para máxima confiabilidade.
 ]]
 
 local ModernUI = {}
@@ -135,15 +135,35 @@ function ModernUI.CreateWindow(options)
 	local WindowButtonsFrame = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(64, 32), Position = UDim2.new(1, -64, 0, 0), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 6 })
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Parent = WindowButtonsFrame})
 	
-    -- [!] BOTÕES CORRIGIDOS COM NOVOS IDs DE IMAGEM
-	local CloseButton = Create("ImageButton", { Name = "Close", Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Image = "rbxassetid://1351660348", ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame })
-	local MinimizeButton = Create("ImageButton", { Name = "Minimize", Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Image = "rbxassetid://1351663059", ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame })
-	
-	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.CloseColor, BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5}) end)
-	CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.TextColor, BackgroundTransparency = 1}) end)
+    -- [!] BOTÕES TROCADOS PARA TEXTBUTTON PARA GARANTIR A VISIBILIDADE
+	local MinimizeButton = Create("TextButton", { 
+		Name = "Minimize", 
+		Size = UDim2.fromOffset(32, 32), 
+		BackgroundTransparency = 1,
+		Font = Enum.Font.Code,
+		Text = "–",
+		TextSize = 20,
+		TextColor3 = Theme.TextColor,
+		Parent = WindowButtonsFrame 
+	})
+
+	local CloseButton = Create("TextButton", { 
+		Name = "Close", 
+		Size = UDim2.fromOffset(32, 32), 
+		BackgroundTransparency = 1, 
+		Font = Enum.Font.Code,
+		Text = "X",
+		TextSize = 20,
+		TextColor3 = Theme.TextColor,
+		Parent = WindowButtonsFrame 
+	})
+
+	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {TextColor3 = Theme.CloseColor, BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5}) end)
+	CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {TextColor3 = Theme.TextColor, BackgroundTransparency = 1}) end)
 	CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
-	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5}) end)
-	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {BackgroundTransparency = 1}) end)
+	
+	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {TextColor3 = Theme.TextEmphasizedColor, BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5}) end)
+	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {TextColor3 = Theme.TextColor, BackgroundTransparency = 1}) end)
 	
 	local isMinimized = false
 	MinimizeButton.MouseButton1Click:Connect(function()
@@ -232,7 +252,6 @@ function ModernUI:AddTab(options)
 	tabObject.PageContents = canvas
 	return tabObject
 end
-
 
 --================================================================
 -- MÉTODOS DOS COMPONENTES (Inalterados)
