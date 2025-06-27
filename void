@@ -171,7 +171,7 @@ function ModernUI.CreateWindow(options)
 	end
 	
 	task.spawn(function()
-		local minIcon, maxIcon, closeIcon = "rbxassetid://96238650693315", "rbxassetid://136588149825832", "rbxassetid://102337677895470"
+		local minIcon, maxIcon, closeIcon = "rbxassetid://96238650693315", "rbxassetid://136588149825832", "rbxassetid://102337677895470" 
 		local success, _ = pcall(function() game:GetService("ContentProvider"):PreloadAsync({minIcon, maxIcon, closeIcon}) end)
 		
 		if success then
@@ -199,19 +199,19 @@ function ModernUI.CreateWindow(options)
 			MinimizeButton.MouseButton1Click:Connect(onMinimizeClick)
 		end
 	end)
-	
-	-- Conexões de eventos para os botões de fallback
-	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {TextColor3 = Theme.CloseColor, Size = UDim2.fromOffset(32, 32)}) end)
-	CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {TextColor3 = Theme.TextColor, Size = UDim2.fromOffset(28, 28)}) end)
-	CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
+
+	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
+	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
+	MinimizeButton.MouseButton1Click:Connect(onMinimizeClick)
 
 	MaximizeButton.MouseEnter:Connect(function() Animate(MaximizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
 	MaximizeButton.MouseLeave:Connect(function() Animate(MaximizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
 	MaximizeButton.MouseButton1Click:Connect(onMaximizeClick)
 	
-	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
-	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
-	MinimizeButton.MouseButton1Click:Connect(onMinimizeClick)
+	-- Conexões de eventos para os botões de fallback
+	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {TextColor3 = Theme.CloseColor, Size = UDim2.fromOffset(32, 32)}) end)
+	CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {TextColor3 = Theme.TextColor, Size = UDim2.fromOffset(28, 28)}) end)
+	CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
 	
 	local dragging = false
 	local dragInput = nil
