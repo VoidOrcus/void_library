@@ -185,8 +185,8 @@ function ModernUI.CreateWindow(options)
 	-- ALTERNATIVA: Tentar usar ImageButtons com IDs válidos
 	task.spawn(function()
 		-- Testar se as imagens carregam
-		local testImage1 = Create("ImageLabel", { Image = "rbxassetid://7072717697", Parent = workspace })
-		local testImage2 = Create("ImageLabel", { Image = "rbxassetid://7072719338", Parent = workspace })
+		local testImage1 = Create("ImageLabel", { Image = "rbxassetid://134256276414393", Parent = workspace })
+		local testImage2 = Create("ImageLabel", { Image = "rbxassetid://138186698594149", Parent = workspace })
 		
 		task.wait(2) -- Aguardar carregamento
 		
@@ -199,7 +199,7 @@ function ModernUI.CreateWindow(options)
 				Name = "Minimize", 
 				Size = UDim2.fromOffset(32, 32), 
 				BackgroundTransparency = 1,
-				Image = "rbxassetid://7072717697", -- ID do ícone de minimizar
+				Image = "rbxassetid://134256276414393", -- ID do ícone de minimizar
 				ImageColor3 = Theme.TextColor,
 				Parent = WindowButtonsFrame,
 				ZIndex = 11
@@ -209,7 +209,7 @@ function ModernUI.CreateWindow(options)
 				Name = "Close", 
 				Size = UDim2.fromOffset(32, 32), 
 				BackgroundTransparency = 1,
-				Image = "rbxassetid://7072719338", -- ID do ícone de fechar
+				Image = "rbxassetid://138186698594149", -- ID do ícone de fechar
 				ImageColor3 = Theme.TextColor,
 				Parent = WindowButtonsFrame,
 				ZIndex = 11
