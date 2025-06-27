@@ -2,7 +2,7 @@
  	ModernUI Library 
  	Autor: VoidOrcus (com assistência da IA Gemini) 
  	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais. 
- 	Versão: 5.2 - Botões de fechar/minimizar trocados para TextButton para máxima confiabilidade.
+ 	Versão: 5.2 - Corrigido botões de fechar/minimizar com IDs válidos e ZIndex.
 ]]
 
 local ModernUI = {}
@@ -132,38 +132,129 @@ function ModernUI.CreateWindow(options)
 		BackgroundTransparency = 1, ClipsDescendants = true, Parent = self.WindowFrame
 	})
 
-	local WindowButtonsFrame = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(64, 32), Position = UDim2.new(1, -64, 0, 0), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 6 })
-	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Parent = WindowButtonsFrame})
+	-- BOTÕES DA JANELA CORRIGIDOS
+	local WindowButtonsFrame = Create("Frame", { 
+		Name = "WindowButtons", 
+		Size = UDim2.fromOffset(70, 32), 
+		Position = UDim2.new(1, -70, 0, 0), 
+		BackgroundTransparency = 1, 
+		Parent = TitleBar, 
+		ZIndex = 10  -- ZIndex mais alto
+	})
+	Create("UIListLayout", { 
+		FillDirection = Enum.FillDirection.Horizontal, 
+		HorizontalAlignment = Enum.HorizontalAlignment.Right, 
+		VerticalAlignment = Enum.VerticalAlignment.Center, 
+		Parent = WindowButtonsFrame
+	})
 	
-    -- [!] BOTÕES TROCADOS PARA TEXTBUTTON PARA GARANTIR A VISIBILIDADE
+	-- BOTÃO MINIMIZAR (usando TextButton como fallback)
 	local MinimizeButton = Create("TextButton", { 
 		Name = "Minimize", 
 		Size = UDim2.fromOffset(32, 32), 
-		BackgroundTransparency = 1,
-		Font = Enum.Font.Code,
-		Text = "–",
-		TextSize = 20,
-		TextColor3 = Theme.TextColor,
-		Parent = WindowButtonsFrame 
+		BackgroundColor3 = Color3.fromRGB(40, 40, 40),
+		BackgroundTransparency = 0.3,
+		BorderSizePixel = 0,
+		Text = "–", -- Caractere de traço
+		Font = Enum.Font.SourceSansBold,
+		TextSize = 18,
+		TextColor3 = Theme.TextColor, 
+		Parent = WindowButtonsFrame,
+		ZIndex = 11,
+		AutoButtonColor = false
 	})
-
+	Create("UICorner", { CornerRadius = UDim.new(0, 3), Parent = MinimizeButton })
+	
+	-- BOTÃO FECHAR (usando TextButton como fallback)
 	local CloseButton = Create("TextButton", { 
 		Name = "Close", 
 		Size = UDim2.fromOffset(32, 32), 
-		BackgroundTransparency = 1, 
-		Font = Enum.Font.Code,
-		Text = "X",
-		TextSize = 20,
-		TextColor3 = Theme.TextColor,
-		Parent = WindowButtonsFrame 
+		BackgroundColor3 = Color3.fromRGB(40, 40, 40),
+		BackgroundTransparency = 0.3,
+		BorderSizePixel = 0,
+		Text = "✕", -- Caractere X
+		Font = Enum.Font.SourceSansBold,
+		TextSize = 14,
+		TextColor3 = Theme.TextColor, 
+		Parent = WindowButtonsFrame,
+		ZIndex = 11,
+		AutoButtonColor = false
 	})
-
-	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {TextColor3 = Theme.CloseColor, BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5}) end)
-	CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {TextColor3 = Theme.TextColor, BackgroundTransparency = 1}) end)
-	CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
+	Create("UICorner", { CornerRadius = UDim.new(0, 3), Parent = CloseButton })
 	
-	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {TextColor3 = Theme.TextEmphasizedColor, BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5}) end)
-	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {TextColor3 = Theme.TextColor, BackgroundTransparency = 1}) end)
+	-- ALTERNATIVA: Tentar usar ImageButtons com IDs válidos
+	task.spawn(function()
+		-- Testar se as imagens carregam
+		local testImage1 = Create("ImageLabel", { Image = "rbxassetid://7072717697", Parent = workspace })
+		local testImage2 = Create("ImageLabel", { Image = "rbxassetid://7072719338", Parent = workspace })
+		
+		task.wait(2) -- Aguardar carregamento
+		
+		if testImage1.Image ~= "" and testImage2.Image ~= "" then
+			-- Se as imagens carregaram, substituir os TextButtons
+			MinimizeButton:Destroy()
+			CloseButton:Destroy()
+			
+			MinimizeButton = Create("ImageButton", { 
+				Name = "Minimize", 
+				Size = UDim2.fromOffset(32, 32), 
+				BackgroundTransparency = 1,
+				Image = "rbxassetid://7072717697", -- ID do ícone de minimizar
+				ImageColor3 = Theme.TextColor,
+				Parent = WindowButtonsFrame,
+				ZIndex = 11
+			})
+			
+			CloseButton = Create("ImageButton", { 
+				Name = "Close", 
+				Size = UDim2.fromOffset(32, 32), 
+				BackgroundTransparency = 1,
+				Image = "rbxassetid://7072719338", -- ID do ícone de fechar
+				ImageColor3 = Theme.TextColor,
+				Parent = WindowButtonsFrame,
+				ZIndex = 11
+			})
+			
+			-- Reconectar eventos
+			CloseButton.MouseEnter:Connect(function() 
+				Animate(CloseButton, {ImageColor3 = Theme.CloseColor, BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5}) 
+			end)
+			CloseButton.MouseLeave:Connect(function() 
+				Animate(CloseButton, {ImageColor3 = Theme.TextColor, BackgroundTransparency = 1}) 
+			end)
+			CloseButton.MouseButton1Click:Connect(function() 
+				self.ScreenGui:Destroy() 
+			end)
+			
+			MinimizeButton.MouseEnter:Connect(function() 
+				Animate(MinimizeButton, {BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0.5}) 
+			end)
+			MinimizeButton.MouseLeave:Connect(function() 
+				Animate(MinimizeButton, {BackgroundTransparency = 1}) 
+			end)
+		end
+		
+		testImage1:Destroy()
+		testImage2:Destroy()
+	end)
+	
+	-- EVENTOS DOS BOTÕES
+	CloseButton.MouseEnter:Connect(function() 
+		Animate(CloseButton, {TextColor3 = Theme.CloseColor, BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0}) 
+	end)
+	CloseButton.MouseLeave:Connect(function() 
+		Animate(CloseButton, {TextColor3 = Theme.TextColor, BackgroundTransparency = 0.3}) 
+	end)
+	CloseButton.MouseButton1Click:Connect(function() 
+		self.ScreenGui:Destroy() 
+	end)
+	
+	MinimizeButton.MouseEnter:Connect(function() 
+		Animate(MinimizeButton, {BackgroundColor3 = Theme.AccentColor1, BackgroundTransparency = 0}) 
+	end)
+	MinimizeButton.MouseLeave:Connect(function() 
+		Animate(MinimizeButton, {BackgroundTransparency = 0.3}) 
+	end)
 	
 	local isMinimized = false
 	MinimizeButton.MouseButton1Click:Connect(function()
@@ -175,6 +266,7 @@ function ModernUI.CreateWindow(options)
 		Animate(self.WindowFrame, {Size = isMinimized and minimizedSize or size})
 	end)
 	
+	-- SISTEMA DE ARRASTAR JANELA
 	local dragging = false; local dragStart, startPos
 	TitleBar.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
