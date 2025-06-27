@@ -2,7 +2,7 @@
  	ModernUI Library 
  	Autor: VoidOrcus (com assistência da IA Gemini) 
  	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais. 
- 	Versão: 5.8 - Adicionado botão e funcionalidade de maximizar/restaurar janela.
+ 	Versão: 5.9 - Reordenado os botões de controle da janela.
 ]]
 
 local ModernUI = {}
@@ -116,17 +116,21 @@ function ModernUI.CreateWindow(options)
 
 	self.PageContainer = Create("Frame", { Name = "PageContainer", Size = UDim2.new(1, -141, 1, -32), Position = UDim2.fromOffset(141, 32), BackgroundTransparency = 1, ClipsDescendants = true, Parent = self.WindowFrame })
 
-	-- [[ MODIFICAÇÃO ]] -- Aumentado o tamanho do Frame para acomodar o novo botão
 	local WindowButtonsFrame = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(120, 32), Position = UDim2.new(1, -120, 0, 0), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 10 })
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 5), Parent = WindowButtonsFrame })
 	
-	-- A ordem de criação define a ordem na tela (Minimizar, Maximizar, Fechar)
-	local MinimizeButton = Create("TextButton", { Name = "Minimize", Size = UDim2.fromOffset(28, 28), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0), BackgroundTransparency = 1, Text = "–", Font = Enum.Font.SourceSansBold, TextSize = 18, TextColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AutoButtonColor = false })
+	-- [[ MODIFICAÇÃO ]] --
+	-- A ordem de criação foi invertida para refletir a ordem visual desejada (Minimizar, Maximizar, Fechar)
+	-- devido ao alinhamento à direita do UIListLayout.
 	
-	-- [[ NOVO ]] -- Botão de Maximizar (fallback com texto)
-	local MaximizeButton = Create("TextButton", { Name = "Maximize", Size = UDim2.fromOffset(28, 28), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0), BackgroundTransparency = 1, Text = "□", Font = Enum.Font.SourceSansBold, TextSize = 16, TextColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AutoButtonColor = false })
+	-- Botão Fechar (criado primeiro para ficar mais à direita)
+	local CloseButton = Create("TextButton", { Name = "Close", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Text = "✕", Font = Enum.Font.SourceSansBold, TextSize = 14, TextColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AutoButtonColor = false })
+	
+	-- Botão Maximizar (criado em segundo)
+	local MaximizeButton = Create("TextButton", { Name = "Maximize", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Text = "□", Font = Enum.Font.SourceSansBold, TextSize = 16, TextColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AutoButtonColor = false })
 
-	local CloseButton = Create("TextButton", { Name = "Close", Size = UDim2.fromOffset(28, 28), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0), BackgroundTransparency = 1, Text = "✕", Font = Enum.Font.SourceSansBold, TextSize = 14, TextColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AutoButtonColor = false })
+	-- Botão Minimizar (criado por último para ficar mais à esquerda)
+	local MinimizeButton = Create("TextButton", { Name = "Minimize", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Text = "–", Font = Enum.Font.SourceSansBold, TextSize = 18, TextColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AutoButtonColor = false })
 	
 	local isMinimized = false
 	local isMaximized = false
@@ -179,36 +183,43 @@ function ModernUI.CreateWindow(options)
 			MaximizeButton:Destroy()
 			CloseButton:Destroy()
 			
-			MinimizeButton = Create("ImageButton", { Name = "Minimize", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = minIcon, ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0) })
-			MaximizeButton = Create("ImageButton", { Name = "Maximize", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = maxIcon, ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0) })
-			CloseButton = Create("ImageButton", { Name = "Close", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = closeIcon, ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0) })
+			-- [[ MODIFICAÇÃO ]] -- Recriando os botões na ordem correta para o layout
+			CloseButton = Create("ImageButton", { Name = "Close", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = closeIcon, ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11 })
+			MaximizeButton = Create("ImageButton", { Name = "Maximize", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = maxIcon, ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11 })
+			MinimizeButton = Create("ImageButton", { Name = "Minimize", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = minIcon, ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11 })
 			
-			-- Eventos do botão Fechar
-			CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.CloseColor, Size = UDim2.fromOffset(32, 32)}) end)
-			CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.TextColor, Size = UDim2.fromOffset(28, 28)}) end)
-			CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
+			-- [[ MODIFICAÇÃO ]] -- Reordenando a conexão de eventos para maior clareza
 			
+			-- Eventos do botão Minimizar
+			MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
+			MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
+			MinimizeButton.MouseButton1Click:Connect(onMinimizeClick)
+
 			-- Eventos do botão Maximizar
 			MaximizeButton.MouseEnter:Connect(function() Animate(MaximizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
 			MaximizeButton.MouseLeave:Connect(function() Animate(MaximizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
 			MaximizeButton.MouseButton1Click:Connect(onMaximizeClick)
 
-			-- Eventos do botão Minimizar
-			MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
-			MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
-			MinimizeButton.MouseButton1Click:Connect(onMinimizeClick)
+			-- Eventos do botão Fechar
+			CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.CloseColor, Size = UDim2.fromOffset(32, 32)}) end)
+			CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.TextColor, Size = UDim2.fromOffset(28, 28)}) end)
+			CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
 		end
 	end)
 
+	-- [[ MODIFICAÇÃO ]] -- Conexões de eventos para os botões de fallback, reordenadas para clareza
+	
+	-- Eventos do botão Minimizar (Fallback)
 	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
 	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
 	MinimizeButton.MouseButton1Click:Connect(onMinimizeClick)
 
+	-- Eventos do botão Maximizar (Fallback)
 	MaximizeButton.MouseEnter:Connect(function() Animate(MaximizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
 	MaximizeButton.MouseLeave:Connect(function() Animate(MaximizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
 	MaximizeButton.MouseButton1Click:Connect(onMaximizeClick)
 	
-	-- Conexões de eventos para os botões de fallback
+	-- Eventos do botão Fechar (Fallback)
 	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {TextColor3 = Theme.CloseColor, Size = UDim2.fromOffset(32, 32)}) end)
 	CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {TextColor3 = Theme.TextColor, Size = UDim2.fromOffset(28, 28)}) end)
 	CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
@@ -219,8 +230,7 @@ function ModernUI.CreateWindow(options)
 	local startPos = nil
 	
 	TitleBar.InputBegan:Connect(function(input)
-		-- Não permite arrastar se a janela estiver maximizada
-		if isMaximized then return end
+		if isMaximized then return end -- Não permite arrastar se a janela estiver maximizada
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
 			dragInput = input
