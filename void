@@ -2,7 +2,7 @@
  	ModernUI Library 
  	Autor: VoidOrcus (com assistência da IA Gemini) 
  	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais. 
- 	Versão: 5.7 - Lógica de arrastar a janela corrigida com base no feedback do usuário.
+ 	Versão: 5.8 - Adicionado botão e funcionalidade de maximizar/restaurar janela.
 ]]
 
 local ModernUI = {}
@@ -90,15 +90,14 @@ function ModernUI.CreateWindow(options)
 	Create("UICorner", { CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = self.WindowFrame })
 	Create("UIStroke", { Thickness = 1, Color = Theme.AccentColor1, Transparency = 0.5, Parent = self.WindowFrame })
 	
-	-- [[ CORREÇÃO ]] -- Removido 'Active = true' para evitar conflitos de input.
 	local TitleBar = Create("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = self.WindowFrame, ZIndex = 4 })
-	local TitleLabel = Create("TextLabel", { Name = "TitleLabel", Size = UDim2.new(1, -70, 1, 0), Position = UDim2.fromOffset(10, 0), BackgroundTransparency = 1, Font = Theme.FontTitle, TextColor3 = Theme.TextEmphasizedColor, Text = "  > " .. title, TextXAlignment = Enum.TextXAlignment.Left, TextSize = 15, Parent = TitleBar, ZIndex = 5 })
+	local TitleLabel = Create("TextLabel", { Name = "TitleLabel", Size = UDim2.new(1, -120, 1, 0), Position = UDim2.fromOffset(10, 0), BackgroundTransparency = 1, Font = Theme.FontTitle, TextColor3 = Theme.TextEmphasizedColor, Text = "  > " .. title, TextXAlignment = Enum.TextXAlignment.Left, TextSize = 15, Parent = TitleBar, ZIndex = 5 })
 	
 	local Sidebar = Create("Frame", { Name = "Sidebar", Size = UDim2.new(0, 140, 1, -32), Position = UDim2.fromOffset(0, 32), BackgroundColor3 = Theme.BackgroundColor, BackgroundTransparency = 0.3, BorderSizePixel = 0, Parent = self.WindowFrame })
 	
 	local SidebarContent = Create("Frame", { Name = "SidebarContent", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Parent = Sidebar })
 	Create("UIPadding", { PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10), PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = SidebarContent })
-	local SidebarLayout = Create("UIListLayout", { FillDirection = Enum.FillDirection.Vertical, SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10), Parent = SidebarContent })
+	Create("UIListLayout", { FillDirection = Enum.FillDirection.Vertical, SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10), Parent = SidebarContent })
 
 	self.SidebarSections.Top = Create("Frame", { Name = "TopSection", Size = UDim2.new(1, 0, 0.3, 0), LayoutOrder = 1, BackgroundTransparency = 1, Parent = SidebarContent })
 	Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 5), Parent = self.SidebarSections.Top })
@@ -117,20 +116,33 @@ function ModernUI.CreateWindow(options)
 
 	self.PageContainer = Create("Frame", { Name = "PageContainer", Size = UDim2.new(1, -141, 1, -32), Position = UDim2.fromOffset(141, 32), BackgroundTransparency = 1, ClipsDescendants = true, Parent = self.WindowFrame })
 
-	local WindowButtonsFrame = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(80, 32), Position = UDim2.new(1, -80, 0, 0), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 10 })
+	-- [[ MODIFICAÇÃO ]] -- Aumentado o tamanho do Frame para acomodar o novo botão
+	local WindowButtonsFrame = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(120, 32), Position = UDim2.new(1, -120, 0, 0), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 10 })
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 5), Parent = WindowButtonsFrame })
 	
+	-- A ordem de criação define a ordem na tela (Minimizar, Maximizar, Fechar)
 	local MinimizeButton = Create("TextButton", { Name = "Minimize", Size = UDim2.fromOffset(28, 28), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0), BackgroundTransparency = 1, Text = "–", Font = Enum.Font.SourceSansBold, TextSize = 18, TextColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AutoButtonColor = false })
 	
+	-- [[ NOVO ]] -- Botão de Maximizar (fallback com texto)
+	local MaximizeButton = Create("TextButton", { Name = "Maximize", Size = UDim2.fromOffset(28, 28), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0), BackgroundTransparency = 1, Text = "□", Font = Enum.Font.SourceSansBold, TextSize = 16, TextColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AutoButtonColor = false })
+
 	local CloseButton = Create("TextButton", { Name = "Close", Size = UDim2.fromOffset(28, 28), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0), BackgroundTransparency = 1, Text = "✕", Font = Enum.Font.SourceSansBold, TextSize = 14, TextColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AutoButtonColor = false })
 	
 	local isMinimized = false
+	local isMaximized = false
+
 	local function onMinimizeClick()
+		if isMaximized then -- Se estiver maximizado, primeiro restaura
+			isMaximized = false
+			Animate(self.WindowFrame, {Size = size, Position = position})
+		end
+		
 		isMinimized = not isMinimized
 		local currentSize = self.WindowFrame.Size
 		local titleBarHeight = TitleBar.AbsoluteSize.Y
-		local minimizedSize = UDim2.new(currentSize.X.Scale, currentSize.X.Offset, 0, titleBarHeight)
+		local minimizedSize = UDim2.new(size.X.Scale, size.X.Offset, 0, titleBarHeight)
 		Animate(self.WindowFrame, {Size = isMinimized and minimizedSize or size})
+		
 		task.spawn(function()
 			if not isMinimized then
 				Sidebar.Visible = true
@@ -145,30 +157,57 @@ function ModernUI.CreateWindow(options)
 		end)
 	end
 	
+	local function onMaximizeClick()
+		if isMinimized then -- Se estiver minimizado, primeiro restaura
+			onMinimizeClick() -- Chama a função para reverter o estado minimizado
+		end
+
+		isMaximized = not isMaximized
+		if isMaximized then
+			Animate(self.WindowFrame, {Size = UDim2.fromScale(1,1), Position = UDim2.fromScale(0.5, 0.5)})
+		else
+			Animate(self.WindowFrame, {Size = size, Position = position})
+		end
+	end
+	
 	task.spawn(function()
-		local minIcon, closeIcon = "rbxassetid://96238650693315", "rbxassetid://102337677895470"
-		local success, _ = pcall(function() game:GetService("ContentProvider"):PreloadAsync({minIcon, closeIcon}) end)
+		local minIcon, maxIcon, closeIcon = "rbxassetid://134256276414393", "rbxassetid://136588149825832", "rbxassetid://138186698594149"
+		local success, _ = pcall(function() game:GetService("ContentProvider"):PreloadAsync({minIcon, maxIcon, closeIcon}) end)
 		
 		if success then
 			MinimizeButton:Destroy()
+			MaximizeButton:Destroy()
 			CloseButton:Destroy()
 			
 			MinimizeButton = Create("ImageButton", { Name = "Minimize", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = minIcon, ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0) })
+			MaximizeButton = Create("ImageButton", { Name = "Maximize", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = maxIcon, ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0) })
 			CloseButton = Create("ImageButton", { Name = "Close", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = closeIcon, ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0) })
 			
+			-- Eventos do botão Fechar
 			CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.CloseColor, Size = UDim2.fromOffset(32, 32)}) end)
 			CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.TextColor, Size = UDim2.fromOffset(28, 28)}) end)
 			CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
 			
+			-- Eventos do botão Maximizar
+			MaximizeButton.MouseEnter:Connect(function() Animate(MaximizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
+			MaximizeButton.MouseLeave:Connect(function() Animate(MaximizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
+			MaximizeButton.MouseButton1Click:Connect(onMaximizeClick)
+
+			-- Eventos do botão Minimizar
 			MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
 			MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
 			MinimizeButton.MouseButton1Click:Connect(onMinimizeClick)
 		end
 	end)
 	
+	-- Conexões de eventos para os botões de fallback
 	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {TextColor3 = Theme.CloseColor, Size = UDim2.fromOffset(32, 32)}) end)
 	CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {TextColor3 = Theme.TextColor, Size = UDim2.fromOffset(28, 28)}) end)
 	CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
+
+	MaximizeButton.MouseEnter:Connect(function() Animate(MaximizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
+	MaximizeButton.MouseLeave:Connect(function() Animate(MaximizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
+	MaximizeButton.MouseButton1Click:Connect(onMaximizeClick)
 	
 	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
 	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
@@ -180,6 +219,8 @@ function ModernUI.CreateWindow(options)
 	local startPos = nil
 	
 	TitleBar.InputBegan:Connect(function(input)
+		-- Não permite arrastar se a janela estiver maximizada
+		if isMaximized then return end
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
 			dragInput = input
@@ -188,7 +229,6 @@ function ModernUI.CreateWindow(options)
 		end
 	end)
 
-	-- [[ CORREÇÃO ]] -- Condição de input corrigida para verificar o movimento do mouse/toque.
 	UserInputService.InputChanged:Connect(function(input)
 		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 			local delta = input.Position - dragStart
