@@ -208,6 +208,108 @@ end
 -- MÉTODOS DOS COMPONENTES (MODIFICADOS E NOVOS)
 --================================================================
 
+-- =================================================================
+-- [[ FUNÇÃO AUSENTE ADICIONADA ]] - SISTEMA DE ABAS
+-- =================================================================
+function ModernUI:AddTab(options)
+	options = options or {}
+	local name = options.Name or "Nova Aba"
+	local section = options.Section or "Middle" -- "Top", "Middle", "Bottom"
+	
+	local tab = setmetatable({}, Tab)
+	tab.Window = self -- Referência de volta para a janela principal
+	
+	-- 1. Cria a página de conteúdo para esta aba
+	tab.PageContents = Create("ScrollingFrame", {
+		Name = name .. "_Page",
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ScrollBarImageColor3 = Theme.TextColor,
+		ScrollBarThickness = 4,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		Visible = #self.Tabs == 0, -- Mostra a primeira aba criada
+		Parent = self.PageContainer,
+		ClipsDescendants = false
+	})
+	Create("UIListLayout", {
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	Parent = tab.PageContents
+	})
+	Create("UIPadding", {
+		PaddingLeft = UDim.new(0, 15),
+		PaddingRight = UDim.new(0, 15),
+		PaddingTop = UDim.new(0, 15),
+		PaddingBottom = UDim.new(0, 15),
+		Parent = tab.PageContents
+	})
+
+	-- 2. Encontra a seção correta na sidebar
+	local parentSection = self.SidebarSections[section]
+	if not parentSection then
+		warn("ModernUI: Seção '" .. section .. "' inválida. Usando 'Middle' como padrão.")
+		parentSection = self.SidebarSections.Middle
+	end
+
+	-- 3. Cria o botão da aba na sidebar
+	local tabButton = Create("TextButton", {
+		Name = name .. "_TabButton",
+		Size = UDim2.new(1, 0, 0, 30),
+		Text = "  " .. name,
+		Font = Theme.FontBody,
+		TextSize = 16,
+		TextColor3 = Theme.TextColor,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		BackgroundColor3 = Theme.AccentColor1,
+		BackgroundTransparency = 1, -- Começa transparente
+		AutoButtonColor = false,
+		Parent = parentSection
+	})
+	Create("UICorner", { CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = tabButton })
+	local indicator = Create("Frame", { Name = "Indicator", Size = UDim2.new(0, 3, 0.6, 0), Position = UDim2.new(0, 0, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundColor3 = Theme.PrimaryColor, BorderSizePixel = 0, Visible = #self.Tabs == 0, Parent = tabButton })
+
+	-- 4. Armazena as referências
+	table.insert(self.Tabs, {
+		Button = tabButton,
+		Page = tab.PageContents,
+		Indicator = indicator
+	})
+	local currentIndex = #self.Tabs
+	
+	-- 5. Adiciona o evento de clique
+	tabButton.MouseButton1Click:Connect(function()
+		for i, t in ipairs(self.Tabs) do
+			local isActive = (i == currentIndex)
+			t.Page.Visible = isActive
+			t.Indicator.Visible = isActive
+			Animate(t.Button, { BackgroundTransparency = isActive and 0.7 or 1 })
+		end
+		self.ActiveTabIndex = currentIndex
+	end)
+
+	-- Animação de hover
+	tabButton.MouseEnter:Connect(function()
+		if self.ActiveTabIndex ~= currentIndex then
+			Animate(tabButton, { BackgroundTransparency = 0.8 })
+		end
+	end)
+	tabButton.MouseLeave:Connect(function()
+		if self.ActiveTabIndex ~= currentIndex then
+			Animate(tabButton, { BackgroundTransparency = 1 })
+		end
+	end)
+
+	-- Define o estado inicial do botão ativo
+	if self.ActiveTabIndex == currentIndex then
+		tabButton.BackgroundTransparency = 0.7
+	end
+
+	return tab
+end
+
 -- [[ MODIFICADO ]] - Adicionada a lógica de registro para o sistema de config
 function Tab:AddSlider(options) 
 	options = options or {}
