@@ -2,7 +2,7 @@
  	ModernUI Library 
  	Autor: VoidOrcus (com assistência da IA Gemini) 
  	Descrição: Uma biblioteca de UI moderna para Roblox, inspirada em sistemas operacionais. 
- 	Versão: 5.4 - Corrigido erro 'GuiResponse' e 'Disconnect' no slider. Ajustada transparência do fundo.
+ 	Versão: 5.5 - Corrigido o evento de clique do botão Minimizar.
 ]]
 
 local ModernUI = {}
@@ -75,33 +75,25 @@ function ModernUI.CreateWindow(options)
 	self.WindowFrame = Create("Frame", {
 		Name = "WindowFrame", Size = size, Position = position, AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Theme.BackgroundColor, 
-		BackgroundTransparency = 0.6, -- Base de cor semi-transparente
+		BackgroundTransparency = 0.6,
 		BorderSizePixel = 0, Parent = self.ScreenGui, ClipsDescendants = true
 	})
 	
 	local BackgroundImage = Create("ImageLabel", {
-		Name = "BackgroundImage",
-		Size = UDim2.new(1, 0, 1, 0),
+		Name = "BackgroundImage", Size = UDim2.new(1, 0, 1, 0),
 		Image = "rbxassetid://105128443123746",
-		ScaleType = Enum.ScaleType.Slice,
-		SliceCenter = Rect.new(10, 10, 110, 110),
-		ImageTransparency = 0.2, -- [[ MODIFICAÇÃO ]] -- Transparência da imagem ajustada
-		BackgroundTransparency = 1, -- Fundo da própria imagem é invisível
-		ZIndex = 0,
-		Parent = self.WindowFrame
+		ScaleType = Enum.ScaleType.Slice, SliceCenter = Rect.new(10, 10, 110, 110),
+		ImageTransparency = 0.2, BackgroundTransparency = 1,
+		ZIndex = 0, Parent = self.WindowFrame
 	})
 
 	Create("UICorner", { CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = self.WindowFrame })
 	Create("UIStroke", { Thickness = 1, Color = Theme.AccentColor1, Transparency = 0.5, Parent = self.WindowFrame })
 	
-	-- [[ MODIFICAÇÃO ]] -- Adicionado Active = true para capturar o input do mouse corretamente
 	local TitleBar = Create("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = Theme.AccentColor1, BorderSizePixel = 0, Parent = self.WindowFrame, ZIndex = 4, Active = true })
 	local TitleLabel = Create("TextLabel", { Name = "TitleLabel", Size = UDim2.new(1, -70, 1, 0), Position = UDim2.fromOffset(10, 0), BackgroundTransparency = 1, Font = Theme.FontTitle, TextColor3 = Theme.TextEmphasizedColor, Text = "  > " .. title, TextXAlignment = Enum.TextXAlignment.Left, TextSize = 15, Parent = TitleBar, ZIndex = 5 })
 	
-	local Sidebar = Create("Frame", {
-		Name = "Sidebar", Size = UDim2.new(0, 140, 1, -32), Position = UDim2.fromOffset(0, 32),
-		BackgroundColor3 = Theme.BackgroundColor, BackgroundTransparency = 0.3, BorderSizePixel = 0, Parent = self.WindowFrame
-	})
+	local Sidebar = Create("Frame", { Name = "Sidebar", Size = UDim2.new(0, 140, 1, -32), Position = UDim2.fromOffset(0, 32), BackgroundColor3 = Theme.BackgroundColor, BackgroundTransparency = 0.3, BorderSizePixel = 0, Parent = self.WindowFrame })
 	
 	local SidebarContent = Create("Frame", { Name = "SidebarContent", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Parent = Sidebar })
 	Create("UIPadding", { PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10), PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = SidebarContent })
@@ -131,35 +123,8 @@ function ModernUI.CreateWindow(options)
 	
 	local CloseButton = Create("TextButton", { Name = "Close", Size = UDim2.fromOffset(28, 28), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0), BackgroundTransparency = 1, Text = "✕", Font = Enum.Font.SourceSansBold, TextSize = 14, TextColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AutoButtonColor = false })
 	
-	task.spawn(function()
-		local minIcon, closeIcon = "rbxassetid://134256276414393", "rbxassetid://138186698594149"
-		local success, _ = pcall(function() game:GetService("ContentProvider"):PreloadAsync({minIcon, closeIcon}) end)
-		
-		if success then
-			MinimizeButton:Destroy()
-			CloseButton:Destroy()
-			
-			MinimizeButton = Create("ImageButton", { Name = "Minimize", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = minIcon, ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0) })
-			CloseButton = Create("ImageButton", { Name = "Close", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = closeIcon, ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0) })
-			
-			CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.CloseColor, Size = UDim2.fromOffset(32, 32)}) end)
-			CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.TextColor, Size = UDim2.fromOffset(28, 28)}) end)
-			CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
-			
-			MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
-			MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
-		end
-	end)
-	
-	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {TextColor3 = Theme.CloseColor, Size = UDim2.fromOffset(32, 32)}) end)
-	CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {TextColor3 = Theme.TextColor, Size = UDim2.fromOffset(28, 28)}) end)
-	CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
-	
-	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
-	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
-	
 	local isMinimized = false
-	MinimizeButton.MouseButton1Click:Connect(function()
+	local function onMinimizeClick()
 		isMinimized = not isMinimized
 		local currentSize = self.WindowFrame.Size
 		local titleBarHeight = TitleBar.AbsoluteSize.Y
@@ -177,7 +142,38 @@ function ModernUI.CreateWindow(options)
 				self.PageContainer.Visible = false
 			end
 		end)
+	end
+	
+	task.spawn(function()
+		local minIcon, closeIcon = "rbxassetid://134256276414393", "rbxassetid://138186698594149"
+		local success, _ = pcall(function() game:GetService("ContentProvider"):PreloadAsync({minIcon, closeIcon}) end)
+		
+		if success then
+			MinimizeButton:Destroy()
+			CloseButton:Destroy()
+			
+			MinimizeButton = Create("ImageButton", { Name = "Minimize", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = minIcon, ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0) })
+			CloseButton = Create("ImageButton", { Name = "Close", Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, Image = closeIcon, ImageColor3 = Theme.TextColor, Parent = WindowButtonsFrame, ZIndex = 11, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0,0,0.5,0) })
+			
+			CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.CloseColor, Size = UDim2.fromOffset(32, 32)}) end)
+			CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {ImageColor3 = Theme.TextColor, Size = UDim2.fromOffset(28, 28)}) end)
+			CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
+			
+			MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
+			MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
+			
+			-- [[ CORREÇÃO ]] -- Conectar o evento de clique ao novo ImageButton de minimizar
+			MinimizeButton.MouseButton1Click:Connect(onMinimizeClick)
+		end
 	end)
+	
+	CloseButton.MouseEnter:Connect(function() Animate(CloseButton, {TextColor3 = Theme.CloseColor, Size = UDim2.fromOffset(32, 32)}) end)
+	CloseButton.MouseLeave:Connect(function() Animate(CloseButton, {TextColor3 = Theme.TextColor, Size = UDim2.fromOffset(28, 28)}) end)
+	CloseButton.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
+	
+	MinimizeButton.MouseEnter:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(32, 32)}) end)
+	MinimizeButton.MouseLeave:Connect(function() Animate(MinimizeButton, {Size = UDim2.fromOffset(28, 28)}) end)
+	MinimizeButton.MouseButton1Click:Connect(onMinimizeClick) -- Conecta ao botão de texto (fallback)
 	
 	local isDragging = false
 	local dragInput = nil
@@ -279,7 +275,6 @@ end
 function Tab:AddLabel(options) options = options or {}; options.Parent = self.PageContents; local label = Create("TextLabel", { Name = "Label", Text = options.Title or "Label", Font = options.Font or Theme.FontBody, TextSize = options.TextSize or 16, TextColor3 = options.Color or Theme.TextColor, TextXAlignment = Enum.TextXAlignment.Left, Size = UDim2.new(1, 0, 0, options.TextSize or 16), BackgroundTransparency = 1, Parent = options.Parent, LayoutOrder = options.Order or 0 }); if options.Animate then Animate(label, {Position = label.Position, TextTransparency = 0}, 0.5) end; return label end
 function Tab:AddButton(options) options = options or {}; options.Parent = self.PageContents; local button = Create("TextButton", { Name = "Button", Text = options.Title or "Button", Font = Theme.FontBody, TextSize = 16, TextColor3 = Theme.TextEmphasizedColor, BackgroundColor3 = Theme.AccentColor1, Size = UDim2.new(1, 0, 0, 38), Parent = options.Parent, LayoutOrder = options.Order or 0, AutoButtonColor = false }); Create("UICorner", {CornerRadius = UDim.new(0, Theme.CornerRadius-2), Parent = button}); button.MouseEnter:Connect(function() Animate(button, {BackgroundColor3 = Theme.PrimaryColor, TextColor3 = Color3.new(1,1,1)}) end); button.MouseLeave:Connect(function() Animate(button, {BackgroundColor3 = Theme.AccentColor1, TextColor3 = Theme.TextEmphasizedColor}) end); button.MouseButton1Click:Connect(function() if options.Callback and type(options.Callback) == "function" then task.spawn(options.Callback) end; local shrinkTween = Animate(button, {Size = UDim2.new(1, 0, 0, 36)}, 0.1); shrinkTween.Completed:Connect(function() Animate(button, {Size = UDim2.new(1, 0, 0, 38)}, 0.1) end) end); return button end
 
--- [[ MODIFICAÇÃO ]] -- Lógica de arrastar do Slider foi refatorada para evitar o erro 'Disconnect'
 function Tab:AddSlider(options) 
 	options = options or {}
 	options.Parent = self.PageContents
