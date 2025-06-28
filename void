@@ -91,50 +91,47 @@ function Lib.CreateWindow(options)
 	self.TabPadding=Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
 	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.new(0,35,0.5,0),AnchorPoint=Vector2.new(0,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=3,Parent=self.Sidebar}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
 
-	-- [[ MUDANÇA 1: CANTOS DO FPS FRAME ]]
-	-- O frame de FPS agora tem ClipsDescendants=true para cortar os cantos do background interno.
+	-- Frame de FPS com background que não sobra
 	local FPSFrame=Create("Frame",{
 		Name="FPSMonitor",
-		Size=UDim2.new(1,0,0,45), -- Reduzido para dar espaço ao novo texto
-		Position=UDim2.new(0.5, 0, 1, -20), -- Movido para cima para dar espaço ao novo texto
+		Size=UDim2.new(1,0,0,45),
+		Position=UDim2.new(0.5, 0, 1, -20),
 		AnchorPoint = Vector2.new(0.5, 1),
-		BackgroundTransparency=1, -- O container principal é transparente
-		ClipsDescendants = true, -- Ativado para cortar os cantos inferiores do background
+		BackgroundTransparency=1,
 		Parent=self.Sidebar,
 		ZIndex=3
 	})
 
-	-- Este é o novo background que terá os cantos arredondados. Ele é um pouco maior
-	-- para que os cantos inferiores fiquem "para fora" e sejam cortados pelo FPSFrame.
+	-- Background do FPS ajustado para não sobrar
 	local FPSBackground = Create("Frame", {
 		Name = "FPSBackground",
-		Size = UDim2.new(1, 0, 1, 6), -- Tamanho extra para os cantos serem cortados
+		Size = UDim2.new(1, 0, 1, 0), -- Tamanho exato, sem sobra
 		Position = UDim2.fromScale(0, 0),
 		BackgroundColor3=Color3.fromRGB(15,17,21),
 		BackgroundTransparency=0.3,
 		Parent=FPSFrame,
 		ZIndex = 3
 	})
-	Create("UICorner",{CornerRadius=UDim.new(0,6),Parent=FPSBackground}) -- UICorner agora no background
+	-- UICorner apenas nos cantos superiores
+	Create("UICorner",{CornerRadius=UDim.new(0,6),Parent=FPSBackground})
 	
-	-- [[ MUDANÇA 2: NOVO TEXTO DE FPS ABAIXO ]]
-	-- Adicionado um novo TextLabel no rodapé da Sidebar.
+	-- Novo texto de FPS no rodapé
 	local FPSFooterLabel = Create("TextLabel", {
 		Name = "FPSFooter",
-		Size = UDim2.new(1, -10, 0, 20), -- Ocupa o espaço inferior
+		Size = UDim2.new(1, -10, 0, 20),
 		Position = UDim2.new(0.5, 0, 1, 0),
 		AnchorPoint = Vector2.new(0.5, 1),
 		BackgroundTransparency = 1,
 		Font = Theme.FontBody,
 		Text = "FPS: -",
-		TextColor3 = Color3.fromRGB(44, 55, 122), -- Azul escuro
+		TextColor3 = Color3.fromRGB(44, 55, 122),
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextSize = 13,
 		Parent = self.Sidebar,
 		ZIndex = 4
 	})
 
-	-- Os elementos internos do monitor de FPS agora são filhos do FPSBackground ou FPSFrame
+	-- Elementos internos do monitor de FPS
 	Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,5),PaddingBottom=UDim.new(0,5),Parent=FPSFrame})
 	local FPSLabel=Create("TextLabel",{Size=UDim2.new(1,0,0,15),BackgroundTransparency=1,Font=Theme.FontTitle,Text="60 FPS",TextColor3=Theme.Accent,TextXAlignment=Enum.TextXAlignment.Left,TextSize=14,Parent=FPSFrame, ZIndex = 4})
 	local FPSGraph=Create("Frame",{Size=UDim2.new(1,0,1,-20),BackgroundColor3=Color3.fromRGB(10,12,16),Parent=FPSFrame, ClipsDescendants=true, ZIndex = 4})
@@ -150,7 +147,7 @@ function Lib.CreateWindow(options)
 			local fps = math.floor(1/deltaTime)
 			
 			FPSLabel.Text = fps .. " FPS"
-			FPSFooterLabel.Text = "FPS: " .. fps -- [[ MUDANÇA 2 ]] Atualiza o novo texto
+			FPSFooterLabel.Text = "FPS: " .. fps
 			
 			table.insert(fpsHistory, fps)
 			if #fpsHistory > maxHistory then table.remove(fpsHistory, 1) end
