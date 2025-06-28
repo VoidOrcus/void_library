@@ -1,14 +1,11 @@
 -- ===================================================================================
--- || BIBLIOTECA MODERN UI (VERSÃO 12.0 - GRÁFICO DE FPS E REFINAMENTOS DE UX) ||
+-- || BIBLIOTECA MODERN UI (VERSÃO 12.1 - CORREÇÃO DE REGRESSÃO) ||
 -- ===================================================================================
 --[[
 	Autor: Gemini (a seu pedido)
 	Descrição: Uma biblioteca de UI de alta qualidade, focada em design e performance.
-	Versão 12.0:
-		- Adicionado Gráfico de FPS estilizado na sidebar.
-		- Implementado sistema de Descrição opcional para todos os componentes.
-		- Implementado sistema de "Scrollbar Inteligente" que só aparece quando necessário.
-		- Reposicionado o indicador de aba para o lado direito da sidebar.
+	Versão 12.1:
+		- Corrigido erro fatal "PaddingAll is not a valid member of UIPadding".
 ]]
 local Lib = {}
 Lib.__index = Lib
@@ -39,48 +36,27 @@ local function Create(iT, p) local i=Instance.new(iT); for P,v in pairs(p or {})
 local function Animate(i, g) if not i then return end; local t=TweenService:Create(i,TweenInfo.new(Theme.AnimationSpeed,Enum.EasingStyle.Quart,Enum.EasingDirection.Out),g); t:Play(); return t end
 
 --================================================================
--- [[ NOVO ]] GRÁFICO DE FPS
+-- GRÁFICO DE FPS
 --================================================================
 local function CreateFPSGraph(parent)
 	local holder = Create("Frame", { Name = "FPS_GraphHolder", Size = UDim2.new(1, 0, 0, 60), BackgroundTransparency = 1, Parent = parent })
-	local title = Create("TextLabel", { Name = "Title", Size = UDim2.new(1, -50, 0, 20), Position = UDim2.fromOffset(0,0), Font = Theme.FontBody, Text = "PERFORMANCE", TextColor3 = Theme.TextMuted, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, BackgroundTransparency = 1, Parent = holder })
+	Create("TextLabel", { Name = "Title", Size = UDim2.new(1, -50, 0, 20), Position = UDim2.fromOffset(0,0), Font = Theme.FontBody, Text = "PERFORMANCE", TextColor3 = Theme.TextMuted, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, BackgroundTransparency = 1, Parent = holder })
 	local fpsLabel = Create("TextLabel", { Name = "FPS_Label", Size = UDim2.new(0, 45, 0, 20), Position = UDim2.new(1, -45, 0, 0), Font = Theme.FontTitle, Text = "...", TextColor3 = Theme.Text, TextSize = 16, TextXAlignment = Enum.TextXAlignment.Right, BackgroundTransparency = 1, Parent = holder })
-	
 	local graphFrame = Create("Frame", { Name = "GraphFrame", Size = UDim2.new(1, 0, 1, -25), Position = UDim2.new(0, 0, 0, 25), BackgroundTransparency = 1, ClipsDescendants = true, Parent = holder })
-	
-	local history = {}
-	local numBars = 30
-	local bars = {}
+	local history, bars, numBars = {}, {}, 30
 	for i = 1, numBars do
-		local bar = Create("Frame", {
-			Name = "Bar"..i, Size = UDim2.new(0, 2, 0, 0), Position = UDim2.new(0, (i - 1) * 4, 1, 0), AnchorPoint = Vector2.new(0, 1),
-			BackgroundColor3 = Theme.Accent, BorderSizePixel = 0, Parent = graphFrame
-		})
+		local bar = Create("Frame", { Name = "Bar"..i, Size = UDim2.new(0, 2, 0, 0), Position = UDim2.new(0, (i - 1) * 4, 1, 0), AnchorPoint = Vector2.new(0, 1), BackgroundColor3 = Theme.Accent, BorderSizePixel = 0, Parent = graphFrame })
 		Create("UIGradient", { Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Theme.Accent), ColorSequenceKeypoint.new(1, Color3.new(Theme.Accent.R, Theme.Accent.G, Theme.Accent.B) * 0.3)}), Rotation = 90, Parent = bar})
-		table.insert(bars, bar)
-		table.insert(history, 0)
+		table.insert(bars, bar); table.insert(history, 0)
 	end
-
 	local lastUpdate = 0
 	RunService.Heartbeat:Connect(function(dt)
 		lastUpdate = lastUpdate + dt
 		if lastUpdate >= 0.1 then
-			local fps = 1 / dt
-			table.insert(history, fps)
-			if #history > numBars then table.remove(history, 1) end
-
-			local maxHist = 0
-			for _, v in pairs(history) do if v > maxHist then maxHist = v end end
-			maxHist = math.max(maxHist, 60)
-			
-			for i = 1, #history do
-				local normalizedHeight = math.clamp(history[i] / maxHist, 0, 1)
-				Animate(bars[i], {Size = UDim2.new(0, 2, normalizedHeight, 0)})
-			end
-			
-			fpsLabel.Text = tostring(math.floor(fps))
-			fpsLabel.TextColor3 = fps > 50 and Color3.fromRGB(133, 222, 135) or fps > 30 and Color3.fromRGB(222, 216, 133) or Color3.fromRGB(222, 133, 133)
-
+			local fps = 1 / dt; table.insert(history, fps); if #history > numBars then table.remove(history, 1) end
+			local maxHist = 0; for _, v in pairs(history) do if v > maxHist then maxHist = v end end; maxHist = math.max(maxHist, 60)
+			for i = 1, #history do Animate(bars[i], {Size = UDim2.new(0, 2, math.clamp(history[i] / maxHist, 0, 1), 0)}) end
+			fpsLabel.Text = tostring(math.floor(fps)); fpsLabel.TextColor3 = fps > 50 and Color3.fromRGB(133, 222, 135) or fps > 30 and Color3.fromRGB(222, 216, 133) or Color3.fromRGB(222, 133, 133)
 			lastUpdate = 0
 		end
 	end)
@@ -95,7 +71,6 @@ function Lib.CreateWindow(options)
 	options = options or {}
 	
 	self.Tabs = {}; self.ActiveTab = nil; self.OriginalProperties = {}; self.MinimizedNub = nil; self.SidebarSections = {}
-
 	local function RandomName() return tostring(math.random(1000000, 9999999)) end
 	self.ScreenGui = Instance.new("ScreenGui")
 	self.ScreenGui.Name = RandomName(); self.ScreenGui.ResetOnSpawn = false; self.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling; self.ScreenGui.Enabled = true
@@ -103,16 +78,13 @@ function Lib.CreateWindow(options)
 
 	self.Window = Create("Frame", { Name = "Window", Size = options.Size or UDim2.fromOffset(600, 400), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = Theme.Primary, BorderSizePixel = 0, Parent = self.ScreenGui, ClipsDescendants = true })
 	self.OriginalProperties = { Size = self.Window.Size, Position = self.Window.Position }; self.WindowCorner = Create("UICorner", { CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = self.Window })
-
 	local TitleBar = Create("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, 35), BackgroundColor3 = Theme.Secondary, BorderSizePixel = 0, Parent = self.Window, ZIndex = 3 })
 	Create("UIGradient", { Rotation = 90, Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Theme.Secondary), ColorSequenceKeypoint.new(1, Theme.Background)}), Parent = TitleBar})
 	Create("ImageLabel", { Name = "Icon", Size = UDim2.fromOffset(22, 22), Position = UDim2.new(0, 15, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1, Image = "rbxassetid://98600802473300", ImageColor3=Theme.Accent, Parent = TitleBar, ZIndex=4})
 	Create("TextLabel", { Name = "Title", Size = UDim2.new(1, -180, 1, 0), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Font = Theme.FontTitle, Text = options.Title or "ModernUI", TextColor3 = Theme.Text, TextXAlignment = Enum.TextXAlignment.Center, TextSize = 16, ZIndex = 4, Parent = TitleBar })
-
 	local isDragging = false; local dragOffset, renderSteppedConnection
 	TitleBar.InputBegan:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then isDragging=true; dragOffset=UserInputService:GetMouseLocation()-self.Window.AbsolutePosition; if renderSteppedConnection then renderSteppedConnection:Disconnect() end; renderSteppedConnection=RunService.RenderStepped:Connect(function() if isDragging then local mP=UserInputService:GetMouseLocation();local nP=mP-dragOffset;local nAP=nP+self.Window.AbsoluteSize*self.Window.AnchorPoint; self.Window.Position=UDim2.fromOffset(nAP.X,nAP.Y) end end)end end)
 	UserInputService.InputEnded:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then isDragging=false; if renderSteppedConnection then renderSteppedConnection:Disconnect();renderSteppedConnection=nil end end end)
-
 	local WindowButtons = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(90, 35), Position = UDim2.new(1, -10, 0.5), AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 5 })
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 5), Parent = WindowButtons })
 	local function CreateWinBtn(name, order, imageId) local btn=Create("ImageButton",{Name=name,LayoutOrder=order,Size=UDim2.fromOffset(22,22),BackgroundTransparency=1,ImageColor3=Theme.TextMuted,Image=imageId,Parent=WindowButtons,ZIndex=6}); btn.MouseEnter:Connect(function()Animate(btn,{ImageColor3=Theme.Text})end); btn.MouseLeave:Connect(function()Animate(btn,{ImageColor3=Theme.TextMuted})end); return btn end
@@ -123,39 +95,34 @@ function Lib.CreateWindow(options)
 	local function RestoreFromSphere() if not self.MinimizedNub then return end; self.Window.Position=self.MinimizedNub.Position; self.Window.Size=self.MinimizedNub.Size; self.WindowCorner.CornerRadius=UDim.new(1,0); self.Window.Visible=true; Animate(self.MinimizedNub,{BackgroundTransparency=1,ImageTransparency=1}); Animate(self.Window,{Position=self.OriginalProperties.Position,Size=self.OriginalProperties.Size}); Animate(self.WindowCorner,{CornerRadius=UDim.new(0,Theme.CornerRadius)}); task.wait(Theme.AnimationSpeed); if self.MinimizedNub then self.MinimizedNub.Visible=false end end
 	Minimize.MouseButton1Click:Connect(function() self.OriginalProperties.Position=self.Window.Position; if not self.MinimizedNub then self.MinimizedNub=Create("ImageButton",{Name="MinimizedNub",Size=UDim2.fromOffset(40,40),Position=UDim2.fromScale(0.05,0.9),BackgroundColor3=Theme.Accent,ImageColor3=Theme.Text,Image="rbxassetid://6031999908",Parent=self.ScreenGui,ZIndex=100,Visible=false,BackgroundTransparency=1,ImageTransparency=1}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.MinimizedNub}); self.MinimizedNub.MouseButton1Click:Connect(RestoreFromSphere); self.MinimizedNub.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then local nDO=self.MinimizedNub.AbsolutePosition-UserInputService:GetMouseLocation(); local nMC,nEC; nMC=RunService.RenderStepped:Connect(function()self.MinimizedNub.Position=UDim2.fromOffset((UserInputService:GetMouseLocation()+nDO).X,(UserInputService:GetMouseLocation()+nDO).Y)end); nEC=UserInputService.InputEnded:Connect(function(eI)if eI.UserInputType==i.UserInputType then nMC:Disconnect();nEC:Disconnect()end end)end end)end; self.MinimizedNub.Visible=true; Animate(self.MinimizedNub,{BackgroundTransparency=0,ImageTransparency=0}); Animate(self.Window,{Position=self.MinimizedNub.Position,Size=self.MinimizedNub.Size}); Animate(self.WindowCorner,{CornerRadius=UDim.new(1,0)}); task.wait(Theme.AnimationSpeed); self.Window.Visible=false end)
 	Maximize.MouseButton1Click:Connect(function() local iM=self.Window.Size.X.Scale==1; Animate(self.Window,{Size=iM and self.OriginalProperties.Size or UDim2.new(1,0,1,0),Position=iM and self.OriginalProperties.Position or UDim2.fromScale(0.5,0.5)}) end)
-	
 	local MainFrame=Create("Frame",{Name="MainFrame",Size=UDim2.new(1,0,1,-35),Position=UDim2.fromOffset(0,35),BackgroundTransparency=1,Parent=self.Window}); self.Sidebar=Create("Frame",{Name="Sidebar",Size=UDim2.new(0,160,1,0),BackgroundColor3=Theme.Primary,BorderSizePixel=0,Parent=MainFrame,ZIndex=2}); self.PageContainer=Create("Frame",{Name="PageContainer",Size=UDim2.new(1,-160,1,0),Position=UDim2.fromOffset(160,0),BackgroundColor3=Theme.Background,ClipsDescendants=true,Parent=MainFrame}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=self.PageContainer})
+	local SidebarContent = Create("Frame", {Name="SidebarContent",Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Parent=self.Sidebar}); Create("UIListLayout",{FillDirection=Enum.FillDirection.Vertical,Padding=UDim.new(0,10),HorizontalAlignment=Enum.HorizontalAlignment.Center,Parent=SidebarContent});
 	
-	local SidebarContent = Create("Frame", { Name = "SidebarContent", Size = UDim2.new(1,0,1,0), BackgroundTransparency = 1, Parent = self.Sidebar})
-	Create("UIListLayout", { FillDirection=Enum.FillDirection.Vertical, Padding=UDim.new(0,10), HorizontalAlignment=Enum.HorizontalAlignment.Center, Parent=SidebarContent})
-	Create("UIPadding", {PaddingAll=UDim.new(0,10), Parent=SidebarContent})
+	-- [[ CORREÇÃO ]] - Substituído "PaddingAll" pelas propriedades corretas.
+	Create("UIPadding", {PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),PaddingBottom=UDim.new(0,10),Parent=SidebarContent})
 
-	self.SidebarSections.Top = Create("Frame", {Name="Top", Size=UDim2.new(1,0,0,0), AutomaticSize=Enum.AutomaticSize.Y, BackgroundTransparency=1, Parent=SidebarContent, LayoutOrder = 1})
-	Create("UIListLayout", {Padding=UDim.new(0,5), Parent=self.SidebarSections.Top})
-	CreateFPSGraph(self.SidebarSections.Top) -- Adiciona o gráfico de FPS
-
-	self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=SidebarContent, LayoutOrder = 2}); Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer});
-	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.fromScale(0,-20),AnchorPoint=Vector2.new(1,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=1,Parent=self.TabContainer}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
+	self.SidebarSections.Top = Create("Frame", {Name="Top",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=SidebarContent,LayoutOrder=1}); Create("UIListLayout",{Padding=UDim.new(0,5),Parent=self.SidebarSections.Top}); CreateFPSGraph(self.SidebarSections.Top)
+	self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=SidebarContent,LayoutOrder=2}); Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer});
+	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.fromScale(1,0),AnchorPoint=Vector2.new(1,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=1,Parent=self.TabContainer}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
 	
 	return self
 end
 
---================================================================
--- SISTEMA DE ABAS E COMPONENTES
---================================================================
 local function ManageScrollbar(sF) local l=sF:FindFirstChildOfClass("UIListLayout"); local function u() task.wait(); local cH=l.AbsoluteContentSize.Y; local fH=sF.AbsoluteSize.Y; local nT=(cH>fH+1)and 4 or 0; if sF.ScrollBarThickness~=nT then Animate(sF,{ScrollBarThickness=nT})end end; l.Changed:Connect(u); sF.Changed:Connect(function(p)if p=="AbsoluteSize" then u()end end); u() end
 function Lib:SwitchToTab(tabToActivate, isInitial)
 	if self.ActiveTab == tabToActivate then return end
-	if self.ActiveTab then AnimatePage(self.ActiveTab.Page, 1); task.delay(Theme.AnimationSpeed, function() if self.ActiveTab ~= tabToActivate then self.ActiveTab.Page.Visible=false end end); local btn=self.ActiveTab.Button; Animate(btn.Content.Icon,{ImageColor3=Theme.TextMuted}); Animate(btn.Content.Label,{TextColor3=Theme.TextMuted}); Animate(btn,{BackgroundColor3=Theme.Primary}) end
+	if self.ActiveTab then AnimatePage(self.ActiveTab.Page,1); task.delay(Theme.AnimationSpeed,function()if self.ActiveTab~=tabToActivate then self.ActiveTab.Page.Visible=false end end); local btn=self.ActiveTab.Button; Animate(btn.Content.Icon,{ImageColor3=Theme.TextMuted}); Animate(btn.Content.Label,{TextColor3=Theme.TextMuted}); Animate(btn,{BackgroundColor3=Theme.Primary})end
 	self.ActiveTab=tabToActivate; local newPage=self.ActiveTab.Page; local newButton=self.ActiveTab.Button; AnimatePage(newPage,1); newPage.Visible=true; AnimatePage(newPage,0); Animate(newButton.Content.Icon,{ImageColor3=Theme.Text}); Animate(newButton.Content.Label,{TextColor3=Theme.Text}); Animate(newButton,{BackgroundColor3=Theme.Secondary})
-	task.spawn(function() task.wait(); if self.ActiveTab~=tabToActivate then return end; local y=newButton.AbsolutePosition.Y-self.TabContainer.AbsolutePosition.Y+(newButton.AbsoluteSize.Y/2); self.TabIndicator.Visible=true; local targetPos=UDim2.new(1,-(self.TabIndicator.AbsoluteSize.X/2),0,y); if isInitial then self.TabIndicator.Position=targetPos else Animate(self.TabIndicator,{Position=targetPos})end end)
+	task.spawn(function() task.wait(); if self.ActiveTab~=tabToActivate then return end; local y=newButton.AbsolutePosition.Y-self.TabContainer.AbsolutePosition.Y+(newButton.AbsoluteSize.Y/2); self.TabIndicator.Visible=true; local targetPos=UDim2.new(1,0,0,y); if isInitial then self.TabIndicator.Position=targetPos else Animate(self.TabIndicator,{Position=targetPos})end end)
 end
 function Lib:AddTab(options)
 	if type(options)=="string"then options={Title=options}end
 	local tab={Window=self,Title=options.Title or"Nova Aba",Icon=options.Icon or"rbxassetid://15223838491"}; setmetatable(tab,Tab)
 	local isFirstTab=#self.Tabs==0
 	ManageScrollbar(self.TabContainer)
-	tab.Page=Create("ScrollingFrame",{Name=tab.Title,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,Visible=isFirstTab,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.PageContainer}); Create("UIListLayout",{Padding=UDim.new(0,15),Parent=tab.Page}); Create("UIPadding",{PaddingAll=UDim.new(0,15),Parent=tab.Page}); ManageScrollbar(tab.Page)
+	tab.Page=Create("ScrollingFrame",{Name=tab.Title,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,Visible=isFirstTab,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.PageContainer}); Create("UIListLayout",{Padding=UDim.new(0,15),Parent=tab.Page}); 
+	-- [[ CORREÇÃO ]] - Substituído "PaddingAll" pelas propriedades corretas.
+	Create("UIPadding",{PaddingLeft=UDim.new(0,15),PaddingRight=UDim.new(0,15),PaddingTop=UDim.new(0,15),PaddingBottom=UDim.new(0,15),Parent=tab.Page}); ManageScrollbar(tab.Page)
 	tab.Button=Create("TextButton",{Name=tab.Title,Size=UDim2.new(1,0,0,35),Text="",BackgroundColor3=isFirstTab and Theme.Secondary or Theme.Primary,AutoButtonColor=false,Parent=self.TabContainer}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=tab.Button})
 	tab.Button.Content=Create("Frame",{Name="Content",Size=UDim2.new(1,-10,1,0),Position=UDim2.fromScale(0.5,0.5),AnchorPoint=Vector2.new(0.5,0.5),BackgroundTransparency=1,Parent=tab.Button}); Create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,VerticalAlignment=Enum.VerticalAlignment.Center,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,8),Parent=tab.Button.Content})
 	tab.Button.Content.Icon=Create("ImageLabel",{Name="Icon",Size=UDim2.fromOffset(20,20),BackgroundTransparency=1,Image=tab.Icon,ImageColor3=isFirstTab and Theme.Text or Theme.TextMuted,ScaleType=Enum.ScaleType.Fit,Parent=tab.Button.Content})
