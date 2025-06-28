@@ -1,18 +1,16 @@
 -- ===================================================================================
--- || BIBLIOTECA MODERN UI (VERSÃO 9.2 - PRONTA PARA HOSTING) ||
+-- || BIBLIOTECA MODERN UI (VERSÃO 10.0 - REESTRUTURAÇÃO COMPLETA) ||
 -- ===================================================================================
 --[[
 	Autor: Gemini (a seu pedido)
-	Descrição: Uma biblioteca de UI moderna, robusta e modular para Roblox.
-	Funcionalidades:
-		- Janela arrastável com barra de título.
-		- Botões de fechar, minimizar e maximizar.
-		- Paginação de abas na vertical com scroll automático.
-		- Componentes: Botão, Label, Slider, Dropdown, Checkbox, Toggle.
-		- Sistema de tema para fácil customização.
-		- Animações suaves em todas as interações.
+	Descrição: Uma biblioteca de UI de alta qualidade, focada em design e performance.
+	Versão 10.0:
+		- Ícones da barra de título substituídos por ImageButtons.
+		- Sistema de arrastar (drag) refeito com RenderStepped para máxima suavidade.
+		- Sistema de minimizar para uma esfera arrastável com memória de posição.
+		- Componentes redesenhados com suporte a Título e Descrição (opcional).
+		- Checkbox redesenhado para um visual circular e moderno.
 ]]
-
 local Lib = {}
 Lib.__index = Lib
 
@@ -20,45 +18,26 @@ local Tab = {}
 Tab.__index = Tab
 
 --================================================================
--- SERVIÇOS
+-- SERVIÇOS E TEMA
 --================================================================
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
---================================================================
--- TEMA PADRÃO
---================================================================
 local Theme = {
-	Background = Color3.fromRGB(21, 23, 29),
-	Primary = Color3.fromRGB(30, 32, 40),
-	Secondary = Color3.fromRGB(40, 42, 52),
-	Accent = Color3.fromRGB(88, 110, 245),
-	Text = Color3.fromRGB(200, 200, 200),
-	TextMuted = Color3.fromRGB(120, 120, 120),
-	Close = Color3.fromRGB(237, 66, 69),
-	FontTitle = Enum.Font.GothamSemibold,
-	FontBody = Enum.Font.Gotham,
-	AnimationSpeed = 0.2,
-	CornerRadius = 6,
+	Background = Color3.fromRGB(21, 23, 29), Primary = Color3.fromRGB(30, 32, 40),
+	Secondary = Color3.fromRGB(40, 42, 52), Accent = Color3.fromRGB(88, 110, 245),
+	Text = Color3.fromRGB(220, 221, 222), TextMuted = Color3.fromRGB(128, 129, 137),
+	Close = Color3.fromRGB(237, 66, 69), FontTitle = Enum.Font.GothamSemibold,
+	FontBody = Enum.Font.Gotham, AnimationSpeed = 0.2, CornerRadius = 6,
 }
 
 --================================================================
 -- FUNÇÕES AUXILIARES
 --================================================================
-local function Create(instanceType, properties)
-	local inst = Instance.new(instanceType)
-	for prop, value in pairs(properties or {}) do
-		inst[prop] = value
-	end
-	return inst
-end
-
-local function Animate(instance, goal)
-	local tween = TweenService:Create(instance, TweenInfo.new(Theme.AnimationSpeed, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), goal)
-	tween:Play()
-	return tween
-end
+local function Create(iT, p) local i=Instance.new(iT); for P,v in pairs(p or {}) do i[P]=v end; return i end
+local function Animate(i, g) local t=TweenService:Create(i,TweenInfo.new(Theme.AnimationSpeed,Enum.EasingStyle.Quart,Enum.EasingDirection.Out),g); t:Play(); return t end
 
 --================================================================
 -- CRIAÇÃO DA JANELA PRINCIPAL
@@ -67,66 +46,103 @@ function Lib.CreateWindow(options)
 	local self = setmetatable({}, Lib)
 	options = options or {}
 	
-	self.Tabs = {}
-	self.ActiveTab = nil
-	self.OriginalProperties = {}
+	self.Tabs = {}; self.ActiveTab = nil; self.OriginalProperties = {}; self.MinimizedNub = nil
 
-	-- Cria a base da UI
-	self.ScreenGui = Create("ScreenGui", { Name = "ModernUI", Parent = CoreGui, ZIndexBehavior = Enum.ZIndexBehavior.Global, ResetOnSpawn = false })
-	if syn and syn.protect_gui then pcall(syn.protect_gui, self.ScreenGui) end -- Proteção para exploits
+	self.ScreenGui = Create("ScreenGui", { Name = "ModernUI_v10", Parent = CoreGui, ZIndexBehavior = Enum.ZIndexBehavior.Global, ResetOnSpawn = false })
+	if syn and syn.protect_gui then pcall(syn.protect_gui, self.ScreenGui) end
 
-	self.Window = Create("Frame", {
-		Name = "Window", Size = options.Size or UDim2.fromOffset(600, 400), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundColor3 = Theme.Primary, BorderSizePixel = 0, Parent = self.ScreenGui, ClipsDescendants = true,
-	})
+	self.Window = Create("Frame", { Name = "Window", Size = options.Size or UDim2.fromOffset(600, 400), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = Theme.Primary, BorderSizePixel = 0, Parent = self.ScreenGui, ClipsDescendants = true })
 	self.OriginalProperties = { Size = self.Window.Size, Position = self.Window.Position }
 	Create("UICorner", { CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = self.Window })
 
-	-- BARRA DE TÍTULO
 	local TitleBar = Create("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, 35), BackgroundColor3 = Theme.Secondary, BorderSizePixel = 0, Parent = self.Window, ZIndex = 2 })
 	Create("TextLabel", { Name = "Title", Size = UDim2.new(1, -95, 1, 0), Position = UDim2.fromOffset(15, 0), BackgroundTransparency = 1, Font = Theme.FontTitle, Text = options.Title or "ModernUI", TextColor3 = Theme.Text, TextXAlignment = Enum.TextXAlignment.Left, TextSize = 16, ZIndex = 3, Parent = TitleBar })
 
-	-- LÓGICA PARA ARRASTAR A JANELA
+	-- [[ NOVO ]] - LÓGICA DE ARRASTAR COM RENDERSTEPPED (MÁXIMA SUAVIDADE)
+	local isDragging = false
+	local dragOffset
+	local renderSteppedConnection
+	
 	TitleBar.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			local dragStart = input.Position
-			local startPos = self.Window.Position
-			local moveConn, endConn
-			moveConn = input.Changed:Connect(function()
-				local newPos = input.Position
-				self.Window.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + (newPos.X - dragStart.X), startPos.Y.Scale, startPos.Y.Offset + (newPos.Y - dragStart.Y))
-			end)
-			endConn = UserInputService.InputEnded:Connect(function(endInput)
-				if endInput == input then
-					moveConn:Disconnect()
-					endConn:Disconnect()
+			isDragging = true
+			dragOffset = self.Window.AbsolutePosition - UserInputService:GetMouseLocation()
+			if renderSteppedConnection then renderSteppedConnection:Disconnect() end
+			renderSteppedConnection = RunService.RenderStepped:Connect(function()
+				if isDragging then
+					local newPosition = UserInputService:GetMouseLocation() + dragOffset
+					self.Window.Position = UDim2.fromOffset(newPosition.X, newPosition.Y)
 				end
 			end)
 		end
 	end)
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			isDragging = false
+			if renderSteppedConnection then
+				renderSteppedConnection:Disconnect()
+				renderSteppedConnection = nil
+			end
+		end
+	end)
 
-	-- BOTÕES DA JANELA (FECHAR, MINIMIZAR, MAXIMIZAR)
+	-- [[ NOVO ]] - BOTÕES DA JANELA COM ÍCONES E NOVAS FUNÇÕES
 	local WindowButtons = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(80, 35), Position = UDim2.new(1, -85, 0, 0), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 4 })
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 5), Parent = WindowButtons })
 
-	local function CreateWinBtn(name, order, iconFunc, hoverColor)
-		local btn = Create("TextButton", {Name=name, LayoutOrder=order, Size=UDim2.fromOffset(22, 22), BackgroundColor3=Theme.Secondary, Text="", Parent=WindowButtons, AutoButtonColor=false, ZIndex=5})
-		Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent=btn}); iconFunc(btn)
-		btn.MouseEnter:Connect(function() Animate(btn, {BackgroundColor3 = hoverColor}) end)
-		btn.MouseLeave:Connect(function() Animate(btn, {BackgroundColor3 = Theme.Secondary}) end)
+	local function CreateWinBtn(name, order, imageId, hoverColor)
+		local btn = Create("ImageButton", {Name=name, LayoutOrder=order, Size=UDim2.fromOffset(20, 20), BackgroundColor3=Theme.Secondary, ImageColor3=Theme.TextMuted, Image=imageId, Parent=WindowButtons, ZIndex=5})
+		Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent=btn})
+		btn.MouseEnter:Connect(function() Animate(btn, {ImageColor3=Theme.Text, BackgroundColor3=hoverColor}) end)
+		btn.MouseLeave:Connect(function() Animate(btn, {ImageColor3=Theme.TextMuted, BackgroundColor3=Theme.Secondary}) end)
 		return btn
 	end
-
-	local Minimize = CreateWinBtn("Minimize", 1, function(p) Create("Frame",{Size=UDim2.new(0.5,0,0,2), Position=UDim2.fromScale(0.5,0.5), AnchorPoint=Vector2.new(0.5,0.5), BackgroundColor3=Theme.TextMuted, BorderSizePixel=0, Parent=p}) end, Theme.Primary)
-	local Maximize = CreateWinBtn("Maximize", 2, function(p) Create("Frame",{Size=UDim2.new(0.4,0,0.4,0), Position=UDim2.fromScale(0.5,0.5), AnchorPoint=Vector2.new(0.5,0.5), BackgroundTransparency=1, BorderColor3=Theme.TextMuted, BorderSizePixel=2, Parent=p}) end, Theme.Primary)
-	local Close = CreateWinBtn("Close", 3, function(p) local l1=Create("Frame",{Size=UDim2.new(0.6,0,0,2), Rotation=45, Parent=p}); local l2=l1:Clone();l2.Rotation=-45;l2.Parent=p; for _,l in pairs(p:GetChildren()) do if l:IsA("Frame") then l.Position=UDim2.fromScale(0.5,0.5);l.AnchorPoint=Vector2.new(0.5,0.5);l.BackgroundColor3=Theme.TextMuted end end end, Theme.Close)
+	
+	local Minimize = CreateWinBtn("Minimize", 1, "rbxassetid://96238650693315", Theme.Primary)
+	local Maximize = CreateWinBtn("Maximize", 2, "rbxassetid://136588149825832", Theme.Primary)
+	local Close = CreateWinBtn("Close", 3, "rbxassetid://102337677895470", Theme.Close)
 
 	Close.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
-	Minimize.MouseButton1Click:Connect(function() Animate(self.Window, {Size = UDim2.new(self.Window.Size.X.Scale, self.Window.Size.X.Offset, 0, 35)}) end)
-	TitleBar.MouseButton1Click:Connect(function() if self.Window.Size.Y.Offset == 35 then Animate(self.Window, {Size = self.OriginalProperties.Size}) end end)
+	
+	-- [[ NOVO ]] - LÓGICA DE MINIMIZAR PARA ESFERA
+	local function RestoreFromSphere()
+		if self.MinimizedNub then Animate(self.MinimizedNub, {BackgroundTransparency=1, ImageTransparency=1}) end
+		self.Window.Visible = true
+		Animate(self.Window, {Position = self.OriginalProperties.Position, Transparency = 0})
+		task.wait(Theme.AnimationSpeed)
+		if self.MinimizedNub then self.MinimizedNub.Visible = false end
+	end
+
+	Minimize.MouseButton1Click:Connect(function()
+		self.OriginalProperties.Position = self.Window.Position -- Salva a posição atual
+		Animate(self.Window, {Position = self.Window.Position + UDim2.fromOffset(0, 20), Transparency = 1})
+		task.wait(Theme.AnimationSpeed)
+		self.Window.Visible = false
+		
+		if not self.MinimizedNub then
+			self.MinimizedNub = Create("ImageButton", {
+				Name="MinimizedNub", Size=UDim2.fromOffset(40,40), Position=UDim2.fromScale(0.05, 0.9), BackgroundColor3=Theme.Accent,
+				ImageColor3=Theme.Text, Image="rbxassetid://6031999908", Parent=self.ScreenGui, ZIndex=100
+			})
+			Create("UICorner", {CornerRadius=UDim.new(1,0), Parent=self.MinimizedNub})
+			self.MinimizedNub.MouseButton1Click:Connect(RestoreFromSphere)
+
+			-- Lógica para arrastar a esfera
+			self.MinimizedNub.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					local nubDragOffset = self.MinimizedNub.AbsolutePosition - UserInputService:GetMouseLocation()
+					local nubMoveConn = RunService.RenderStepped:Connect(function() self.MinimizedNub.Position = UDim2.fromOffset((UserInputService:GetMouseLocation() + nubDragOffset).X, (UserInputService:GetMouseLocation() + nubDragOffset).Y) end)
+					local nubEndConn = UserInputService.InputEnded:Connect(function(endInput) if endInput.UserInputType == input.UserInputType then nubMoveConn:Disconnect(); nubEndConn:Disconnect() end end)
+				end
+			end)
+		end
+		self.MinimizedNub.Visible = true
+		Animate(self.MinimizedNub, {BackgroundTransparency=0, ImageTransparency=0})
+	end)
+	
 	Maximize.MouseButton1Click:Connect(function()
-		local isMax = self.Window.Size == UDim2.new(1,0,1,0)
-		Animate(self.Window, { Size = isMax and self.OriginalProperties.Size or UDim2.new(1,0,1,0), Position = isMax and self.OriginalProperties.Position or UDim2.fromScale(0.5,0.5) })
+		local isMax = self.Window.Size.X.Scale == 1
+		Animate(self.Window, {Size = isMax and self.OriginalProperties.Size or UDim2.new(1,0,1,0), Position = isMax and self.OriginalProperties.Position or UDim2.fromScale(0.5,0.5)})
 	end)
 
 	-- LAYOUT PRINCIPAL (SIDEBAR + CONTEÚDO)
@@ -134,10 +150,8 @@ function Lib.CreateWindow(options)
 	local Sidebar = Create("Frame", { Name = "Sidebar", Size = UDim2.new(0, 160, 1, 0), BackgroundColor3 = Theme.Primary, BorderSizePixel = 0, Parent = MainFrame })
 	self.PageContainer = Create("Frame", { Name = "PageContainer", Size = UDim2.new(1, -160, 1, 0), Position = UDim2.fromOffset(160, 0), BackgroundColor3 = Theme.Background, ClipsDescendants = true, Parent = MainFrame })
 	Create("UICorner", {CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = self.PageContainer})
-
 	self.TabContainer = Create("ScrollingFrame", { Name="TabContainer", Size=UDim2.new(1,0,1,0), BackgroundTransparency=1, BorderSizePixel=0, ScrollingDirection=Enum.ScrollingDirection.Y, ScrollBarThickness=4, ScrollBarImageColor3=Theme.Accent, Parent=Sidebar })
-	Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 5), Parent = self.TabContainer })
-	Create("UIPadding", { PaddingLeft = UDim.new(0,10), PaddingRight = UDim.new(0,10), PaddingTop = UDim.new(0,10), Parent=self.TabContainer })
+	Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 5), Parent = self.TabContainer }); Create("UIPadding", { PaddingLeft = UDim.new(0,10), PaddingRight = UDim.new(0,10), PaddingTop = UDim.new(0,10), Parent=self.TabContainer })
 
 	return self
 end
@@ -146,56 +160,81 @@ end
 -- CRIAÇÃO DE ABAS (PÁGINAS)
 --================================================================
 function Lib:AddTab(name)
-	local tab = setmetatable({}, Tab)
-	tab.Window = self
-	tab.Name = name
-
-	tab.Page = Create("ScrollingFrame", {
-		Name = name, Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, BorderSizePixel = 0, Visible = #self.Tabs == 0,
-		AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollingDirection = Enum.ScrollingDirection.Y, ScrollBarThickness = 4, ScrollBarImageColor3 = Theme.Accent,
-		Parent = self.PageContainer,
-	})
-	Create("UIListLayout", { Padding = UDim.new(0, 10), Parent = tab.Page })
-	Create("UIPadding", { PaddingAll = UDim.new(0, 15), Parent = tab.Page })
-
-	tab.Button = Create("TextButton", {
-		Name = name, Size = UDim2.new(1, 0, 0, 35), Text = "  " .. name, Font = Theme.FontBody, TextSize = 16,
-		TextColor3 = Theme.TextMuted, TextXAlignment = Enum.TextXAlignment.Left, BackgroundColor3 = Theme.Primary, AutoButtonColor = false,
-		Parent = self.TabContainer,
-	})
-	Create("UICorner", { CornerRadius = UDim.new(0, Theme.CornerRadius), Parent = tab.Button })
-	local Indicator = Create("Frame", {Name="Indicator", Size=UDim2.new(0,3,0.7,0), Position=UDim2.fromScale(0,0.5), AnchorPoint=Vector2.new(0,0.5), BackgroundColor3=Theme.Accent, BorderSizePixel=0, Visible=false, Parent=tab.Button})
-	Create("UICorner", {Parent=Indicator})
-
-	table.insert(self.Tabs, tab)
-	
-	local function SetActive()
-		if self.ActiveTab == tab then return end
-		if self.ActiveTab then
-			self.ActiveTab.Page.Visible = false
-			Animate(self.ActiveTab.Button, { BackgroundColor3 = Theme.Primary, TextColor3 = Theme.TextMuted })
-			Animate(self.ActiveTab.Button.Indicator, {Visible = false})
-		end
-		self.ActiveTab = tab
-		self.ActiveTab.Page.Visible = true
-		Animate(self.ActiveTab.Button, { BackgroundColor3 = Theme.Secondary, TextColor3 = Theme.Text })
-		Animate(self.ActiveTab.Button.Indicator, {Visible = true})
-	end
-	
-	tab.Button.MouseButton1Click:Connect(SetActive)
-	if #self.Tabs == 1 then SetActive() end
-	
+	local tab = setmetatable({}, Tab); tab.Window = self; tab.Name = name
+	tab.Page = Create("ScrollingFrame", {Name=name, Size=UDim2.new(1,0,1,0), BackgroundTransparency=1, BorderSizePixel=0, Visible=#self.Tabs==0, AutomaticCanvasSize=Enum.AutomaticSize.Y, ScrollingDirection=Enum.ScrollingDirection.Y, ScrollBarThickness=4, ScrollBarImageColor3=Theme.Accent, Parent=self.PageContainer})
+	Create("UIListLayout", { Padding=UDim.new(0,15), Parent=tab.Page }); Create("UIPadding", {PaddingAll=UDim.new(0,15), Parent=tab.Page})
+	tab.Button = Create("TextButton", {Name=name, Size=UDim2.new(1,0,0,35), Text="  "..name, Font=Theme.FontBody, TextSize=16, TextColor3=Theme.TextMuted, TextXAlignment=Enum.TextXAlignment.Left, BackgroundColor3=Theme.Primary, AutoButtonColor=false, Parent=self.TabContainer})
+	Create("UICorner", {CornerRadius=UDim.new(0,Theme.CornerRadius), Parent=tab.Button})
+	local Indicator = Create("Frame", {Name="Indicator", Size=UDim2.new(0,3,0.7,0), Position=UDim2.fromScale(0,0.5), AnchorPoint=Vector2.new(0,0.5), BackgroundColor3=Theme.Accent, BorderSizePixel=0, Visible=false, Parent=tab.Button}); Create("UICorner",{Parent=Indicator})
+	table.insert(self.Tabs,tab)
+	local function SetActive() if self.ActiveTab==tab then return end; if self.ActiveTab then self.ActiveTab.Page.Visible=false; Animate(self.ActiveTab.Button,{BackgroundColor3=Theme.Primary,TextColor3=Theme.TextMuted}); Animate(self.ActiveTab.Button.Indicator,{Visible=false}) end; self.ActiveTab=tab; self.ActiveTab.Page.Visible=true; Animate(self.ActiveTab.Button,{BackgroundColor3=Theme.Secondary,TextColor3=Theme.Text}); Animate(self.ActiveTab.Button.Indicator,{Visible=true}) end
+	tab.Button.MouseButton1Click:Connect(SetActive); if #self.Tabs == 1 then SetActive() end
 	return tab
 end
 
 --================================================================
--- MÉTODOS DOS COMPONENTES
+-- [[ REESCRITO ]] MÉTODOS DOS COMPONENTES COM TÍTULO E DESCRIÇÃO
 --================================================================
-function Tab:AddLabel(options) Create("TextLabel", {Size = UDim2.new(1,0,0,20), BackgroundTransparency = 1, Font = Theme.FontBody, Text = options.Title, TextColor3 = Theme.Text, TextXAlignment = Enum.TextXAlignment.Left, TextSize = 16, Parent = self.Page}) end
-function Tab:AddButton(options) local b=Create("TextButton", {Size=UDim2.new(1,0,0,35), BackgroundColor3=Theme.Accent, Font=Theme.FontBody, Text=options.Title, TextColor3=Theme.Text, TextSize=15, Parent=self.Page, AutoButtonColor=false}); Create("UICorner", {Parent=b}); b.MouseButton1Click:Connect(function() if options.Callback then options.Callback() end end) end
-function Tab:AddCheckbox(options) local h=Create("TextButton",{Size=UDim2.new(1,0,0,25),BackgroundTransparency=1,Text="",Parent=self.Page}); local b=Create("Frame",{Size=UDim2.fromOffset(20,20),Position=UDim2.fromScale(0,0.5),AnchorPoint=Vector2.new(0,0.5),BackgroundColor3=Theme.Secondary,Parent=h}); Create("UICorner",{Parent=b}); local c=Create("ImageLabel",{Size=UDim2.fromScale(0.8,0.8),Position=UDim2.fromScale(0.5,0.5),AnchorPoint=Vector2.new(0.5,0.5),Image="rbxassetid://3926306380",ImageColor3=Theme.Text,BackgroundTransparency=1,ImageTransparency=1,Parent=b}); Create("TextLabel",{Size=UDim2.new(1,-30,1,0),Position=UDim2.fromOffset(30,0),BackgroundTransparency=1,Font=Theme.FontBody,Text=options.Title,TextColor3=Theme.Text,TextXAlignment=Enum.TextXAlignment.Left,TextSize=15,Parent=h}); local i=options.Default or false; local function sV(v) i=v;Animate(c,{ImageTransparency=i and 0 or 1});Animate(b,{BackgroundColor3=i and Theme.Accent or Theme.Secondary});if options.Callback then options.Callback(i)end end; h.MouseButton1Click:Connect(function()sV(not i)end);sV(i) end
-function Tab:AddToggle(options) local h=Create("TextButton",{Size=UDim2.new(1,0,0,25),BackgroundTransparency=1,Text="",Parent=self.Page}); Create("TextLabel",{Size=UDim2.new(1,-50,1,0),Position=UDim2.fromOffset(0,0),BackgroundTransparency=1,Font=Theme.FontBody,Text=options.Title,TextColor3=Theme.Text,TextXAlignment=Enum.TextXAlignment.Left,TextSize=15,Parent=h}); local t=Create("Frame",{Size=UDim2.fromOffset(40,20),Position=UDim2.new(1,0,0.5,0),AnchorPoint=Vector2.new(1,0.5),BackgroundColor3=Theme.Secondary,Parent=h}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=t}); local th=Create("Frame",{Size=UDim2.fromOffset(16,16),Position=UDim2.new(0,2,0.5,0),AnchorPoint=Vector2.new(0,0.5),BackgroundColor3=Theme.Text,Parent=t}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=th}); local i=options.Default or false; local function sV(v) i=v;Animate(th,{Position=i and UDim2.new(1,-2,0.5,0) or UDim2.new(0,2,0.5,0),AnchorPoint=i and Vector2.new(1,0.5) or Vector2.new(0,0.5)});Animate(t,{BackgroundColor3=i and Theme.Accent or Theme.Secondary});if options.Callback then options.Callback(i)end end; h.MouseButton1Click:Connect(function()sV(not i)end);sV(i) end
-function Tab:AddSlider(options) local m,x,d=options.Min or 0,options.Max or 100,options.Default or 0; local h=Create("Frame",{Size=UDim2.new(1,0,0,40),BackgroundTransparency=1,Parent=self.Page}); Create("TextLabel",{Size=UDim2.new(1,-60,0,15),BackgroundTransparency=1,Font=Theme.FontBody,Text=options.Title,TextColor3=Theme.Text,TextXAlignment=Enum.TextXAlignment.Left,TextSize=15,Parent=h}); local vL=Create("TextLabel",{Size=UDim2.new(0,50,0,15),Position=UDim2.new(1,-50,0,0),BackgroundTransparency=1,Font=Theme.FontBody,TextColor3=Theme.Text,TextXAlignment=Enum.TextXAlignment.Right,TextSize=15,Parent=h}); local t=Create("Frame",{Size=UDim2.new(1,0,0,6),Position=UDim2.new(0,0,1,-6),AnchorPoint=Vector2.new(0,1),BackgroundColor3=Theme.Secondary,Parent=h}); Create("UICorner",{Parent=t}); local p=Create("Frame",{BackgroundColor3=Theme.Accent,Parent=t}); Create("UICorner",{Parent=p}); local th=Create("TextButton",{Size=UDim2.fromOffset(16,16),BackgroundColor3=Theme.Text,ZIndex=2,Text="",Parent=t}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=th}); local function uFV(v) local c=math.clamp(v,m,x);local pC=(c-m)/(x-m);p.Size=UDim2.new(pC,0,1,0);th.Position=UDim2.new(pC,-th.AbsoluteSize.X/2,0.5,-th.AbsoluteSize.Y/2);vL.Text=tostring(math.floor(c));if options.Callback then options.Callback(c)end end; local function uFI(iX) local pC=math.clamp((iX-t.AbsolutePosition.X)/t.AbsoluteSize.X,0,1);local v=m+(x-m)*pC;uFV(v)end; th.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then local mC,eC;mC=i.Changed:Connect(function()if i.UserInputState==Enum.UserInputState.Change then uFI(i.Position.X)end end);eC=UserInputService.InputEnded:Connect(function(eI)if eI.UserInputType==i.UserInputType then mC:Disconnect();eC:Disconnect()end end)end end);uFV(d) end
-function Tab:AddDropdown(options) local h=Create("Frame",{Size=UDim2.new(1,0,0,35),BackgroundTransparency=1,ZIndex=10,Parent=self.Page}); local m=Create("TextButton",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Theme.Secondary,Font=Theme.FontBody,Text=" "..tostring(options.Default or options.Values[1]),TextColor3=Theme.Text,TextSize=15,TextXAlignment=Enum.TextXAlignment.Left,Parent=h,AutoButtonColor=false}); Create("UICorner",{Parent=m}); local a=Create("TextLabel",{Size=UDim2.fromOffset(20,20),Position=UDim2.new(1,-25,0.5,0),AnchorPoint=Vector2.new(0.5,0.5),BackgroundTransparency=1,Font=Theme.FontBody,Text="▼",TextColor3=Theme.TextMuted,TextSize=16,Parent=m}); local l=Create("ScrollingFrame",{Size=UDim2.new(1,0,0,100),Position=UDim2.new(0,0,1,5),BackgroundColor3=Theme.Secondary,BorderSizePixel=0,Visible=false,Parent=h,ZIndex=20,AutomaticCanvasSize=Enum.AutomaticSize.Y}); Create("UICorner",{Parent=l}); Create("UIListLayout",{Padding=UDim.new(0,2),Parent=l}); local i=false; local function sV(v) m.Text=" "..tostring(v);if options.Callback then options.Callback(v)end end; for _,v in pairs(options.Values) do local b=Create("TextButton",{Size=UDim2.new(1,0,0,30),BackgroundTransparency=1,Font=Theme.FontBody,Text=" "..tostring(v),TextColor3=Theme.Text,TextSize=15,TextXAlignment=Enum.TextXAlignment.Left,Parent=l,AutoButtonColor=false}); b.MouseButton1Click:Connect(function()sV(v);i=false;l.Visible=false;Animate(a,{Rotation=0});h.Size=UDim2.new(1,0,0,35)end); b.MouseEnter:Connect(function()Animate(b,{BackgroundColor3=Theme.Primary})end); b.MouseLeave:Connect(function()Animate(b,{BackgroundColor3=Theme.Secondary})end) end; m.MouseButton1Click:Connect(function()i=not i;l.Visible=i;Animate(a,{Rotation=i and 180 or 0});h.Size=UDim2.new(1,0,0,i and 140 or 35)end) end
+local function CreateComponentHolder(parent, height)
+	local holder = Create("Frame", {Size=UDim2.new(1,0,0,height), BackgroundTransparency=1, AutomaticSize=Enum.AutomaticSize.Y, Parent=parent})
+	Create("UIListLayout", {Padding=UDim.new(0,5), Parent=holder})
+	return holder
+end
+local function AddDesc(holder, text)
+	if text and text ~= "" then
+		local descHolder = Create("Frame", {Name="Description", Size=UDim2.new(1,0,0,0), AutomaticSize=Enum.AutomaticSize.Y, BackgroundColor3=Theme.Primary, BackgroundTransparency=0.5, Parent=holder})
+		Create("UICorner", {Parent=descHolder})
+		local descLabel = Create("TextLabel", {Size=UDim2.new(1,-16,0,0), Position=UDim2.fromOffset(8,8), AutomaticSize=Enum.AutomaticSize.Y, BackgroundTransparency=1, Font=Theme.FontBody, Text=text, TextColor3=Theme.TextMuted, TextXAlignment=Enum.TextXAlignment.Left, TextWrapped=true, TextSize=13, Parent=descHolder})
+		Create("UIPadding", {PaddingBottom=UDim.new(0,8), Parent=descHolder})
+	end
+end
+
+function Tab:AddLabel(options) Create("TextLabel", {Size=UDim2.new(1,0,0,20), BackgroundTransparency=1, Font=Theme.FontTitle, Text=options.Title, TextColor3=Theme.Text, TextXAlignment=Enum.TextXAlignment.Left, TextSize=16, Parent=self.Page}) end
+function Tab:AddButton(options) local btn=Create("TextButton",{Size=UDim2.new(1,0,0,35),BackgroundColor3=Theme.Accent,Font=Theme.FontBody,Text=options.Title,TextColor3=Theme.Text,TextSize=15,Parent=self.Page,AutoButtonColor=false}); Create("UICorner",{Parent=btn}); btn.MouseButton1Click:Connect(function()if options.Callback then options.Callback()end end) end
+
+function Tab:AddCheckbox(options)
+	local holder = CreateComponentHolder(self.Page, 25)
+	local main = Create("TextButton", {Size=UDim2.new(1,0,0,25), BackgroundTransparency=1, Text="", Parent=holder})
+	local box = Create("Frame", {Size=UDim2.fromOffset(22,22), Position=UDim2.fromScale(0,0.5), AnchorPoint=Vector2.new(0,0.5), BackgroundColor3=Theme.Secondary, Parent=main}); Create("UICorner",{CornerRadius=UDim.new(1,0), Parent=box})
+	local check = Create("Frame", {Size=UDim2.fromScale(0.5,0.5), Position=UDim2.fromScale(0.5,0.5), AnchorPoint=Vector2.new(0.5,0.5), BackgroundColor3=Theme.Text, BackgroundTransparency=1, Parent=box}); Create("UICorner",{CornerRadius=UDim.new(1,0), Parent=check})
+	Create("TextLabel", {Size=UDim2.new(1,-32,1,0), Position=UDim2.fromOffset(32,0), BackgroundTransparency=1, Font=Theme.FontBody, Text=options.Title, TextColor3=Theme.Text, TextXAlignment=Enum.TextXAlignment.Left, TextSize=15, Parent=main})
+	AddDesc(holder, options.Desc)
+	local isChecked=options.Default or false; local function sV(v) isChecked=v; Animate(check,{BackgroundTransparency=isChecked and 0 or 1}); Animate(box,{BackgroundColor3=isChecked and Theme.Accent or Theme.Secondary}); if options.Callback then options.Callback(isChecked) end end
+	main.MouseButton1Click:Connect(function()sV(not isChecked)end); sV(isChecked)
+end
+
+function Tab:AddToggle(options)
+	local holder = CreateComponentHolder(self.Page, 50)
+	Create("TextLabel",{Size=UDim2.new(1,0,0,16), BackgroundTransparency=1, Font=Theme.FontBody, Text=options.Title, TextColor3=Theme.Text, TextXAlignment=Enum.TextXAlignment.Left, TextSize=15, Parent=holder})
+	local main = Create("TextButton", {Size=UDim2.new(1,0,0,25), BackgroundTransparency=1, Text="", Parent=holder})
+	local track = Create("Frame",{Size=UDim2.fromOffset(40,20), Position=UDim2.new(1,0,0.5,0), AnchorPoint=Vector2.new(1,0.5), BackgroundColor3=Theme.Secondary, Parent=main}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=track})
+	local thumb = Create("Frame",{Size=UDim2.fromOffset(16,16), Position=UDim2.new(0,2,0.5,0), AnchorPoint=Vector2.new(0,0.5), BackgroundColor3=Theme.Text, Parent=track}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=thumb})
+	AddDesc(holder, options.Desc)
+	local isToggled=options.Default or false; local function sV(v) isToggled=v; Animate(thumb,{Position=isToggled and UDim2.new(1,-2,0.5,0) or UDim2.new(0,2,0.5,0), AnchorPoint=isToggled and Vector2.new(1,0.5) or Vector2.new(0,0.5)}); Animate(track,{BackgroundColor3=isToggled and Theme.Accent or Theme.Secondary}); if options.Callback then options.Callback(isToggled) end end
+	main.MouseButton1Click:Connect(function()sV(not isToggled)end); sV(isToggled)
+end
+
+function Tab:AddSlider(options)
+	local holder = CreateComponentHolder(self.Page, 60)
+	local titleHolder = Create("Frame", {Size=UDim2.new(1,0,0,16), BackgroundTransparency=1, Parent=holder})
+	Create("TextLabel",{Size=UDim2.new(1,-60,1,0), BackgroundTransparency=1, Font=Theme.FontBody, Text=options.Title, TextColor3=Theme.Text, TextXAlignment=Enum.TextXAlignment.Left, TextSize=15, Parent=titleHolder})
+	local vL=Create("TextLabel",{Size=UDim2.new(0,50,1,0), Position=UDim2.new(1,-50,0,0), BackgroundTransparency=1, Font=Theme.FontBody, TextColor3=Theme.Text, TextXAlignment=Enum.TextXAlignment.Right, TextSize=15, Parent=titleHolder})
+	local track=Create("Frame",{Size=UDim2.new(1,0,0,6), BackgroundColor3=Theme.Secondary, Parent=holder}); Create("UICorner",{Parent=track})
+	local p=Create("Frame",{BackgroundColor3=Theme.Accent, Parent=track}); Create("UICorner",{Parent=p})
+	local th=Create("TextButton",{Size=UDim2.fromOffset(16,16), BackgroundColor3=Theme.Text, ZIndex=2, Text="", Parent=track}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=th})
+	AddDesc(holder, options.Desc)
+	local m,x,d=options.Min or 0,options.Max or 100,options.Default or 0; local function uFV(v) local c=math.clamp(v,m,x);local pC=(c-m)/(x-m);p.Size=UDim2.new(pC,0,1,0);th.Position=UDim2.new(pC,-th.AbsoluteSize.X/2,0.5,-th.AbsoluteSize.Y/2);vL.Text=tostring(math.floor(c));if options.Callback then options.Callback(c)end end; local function uFI(iX) local pC=math.clamp((iX-t.AbsolutePosition.X)/t.AbsoluteSize.X,0,1);local v=m+(x-m)*pC;uFV(v)end; th.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then local mC,eC;mC=i.Changed:Connect(function()if i.UserInputState==Enum.UserInputState.Change then uFI(i.Position.X)end end);eC=UserInputService.InputEnded:Connect(function(eI)if eI.UserInputType==i.UserInputType then mC:Disconnect();eC:Disconnect()end end)end end); uFV(d)
+end
+
+function Tab:AddDropdown(options)
+	local holder = CreateComponentHolder(self.Page, 55)
+	holder.ZIndex = 10
+	Create("TextLabel",{Size=UDim2.new(1,0,0,16), BackgroundTransparency=1, Font=Theme.FontBody, Text=options.Title, TextColor3=Theme.Text, TextXAlignment=Enum.TextXAlignment.Left, TextSize=15, Parent=holder})
+	local main=Create("TextButton",{Size=UDim2.new(1,0,0,35),BackgroundColor3=Theme.Secondary,Font=Theme.FontBody,Text=" "..tostring(options.Default or options.Values[1]),TextColor3=Theme.Text,TextSize=15,TextXAlignment=Enum.TextXAlignment.Left,Parent=holder,AutoButtonColor=false}); Create("UICorner",{Parent=main})
+	local a=Create("TextLabel",{Size=UDim2.fromOffset(20,20),Position=UDim2.new(1,-25,0.5,0),AnchorPoint=Vector2.new(0.5,0.5),BackgroundTransparency=1,Font=Theme.FontBody,Text="▼",TextColor3=Theme.TextMuted,TextSize=16,Parent=main})
+	local list=Create("ScrollingFrame",{Size=UDim2.new(1,0,0,100),Position=UDim2.new(0,0,1,5),BackgroundColor3=Theme.Secondary,BorderSizePixel=0,Visible=false,Parent=holder,ZIndex=20,AutomaticCanvasSize=Enum.AutomaticSize.Y}); Create("UICorner",{Parent=list}); Create("UIListLayout",{Padding=UDim.new(0,2),Parent=list})
+	AddDesc(holder, options.Desc)
+	local i=false; local function sV(v) main.Text=" "..tostring(v);if options.Callback then options.Callback(v)end end; for _,v in pairs(options.Values) do local b=Create("TextButton",{Size=UDim2.new(1,0,0,30),BackgroundTransparency=1,Font=Theme.FontBody,Text=" "..tostring(v),TextColor3=Theme.Text,TextSize=15,TextXAlignment=Enum.TextXAlignment.Left,Parent=list,AutoButtonColor=false}); b.MouseButton1Click:Connect(function()sV(v);i=false;list.Visible=false;Animate(a,{Rotation=0});holder.ZIndex=10 end); b.MouseEnter:Connect(function()Animate(b,{BackgroundColor3=Theme.Primary})end); b.MouseLeave:Connect(function()Animate(b,{BackgroundColor3=Theme.Secondary})end) end; m.MouseButton1Click:Connect(function()i=not i;list.Visible=i;Animate(a,{Rotation=i and 180 or 0});holder.ZIndex= i and 20 or 10 end)
+end
 
 return Lib
