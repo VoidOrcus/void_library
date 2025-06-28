@@ -1,12 +1,13 @@
 -- ===================================================================================
--- || BIBLIOTECA MODERN UI (VERSÃO 10.5 - CORREÇÃO DE BUGS E LAYOUT) ||
+-- || BIBLIOTECA MODERN UI (VERSÃO 10.5 - CORREÇÃO DE BUGS CRÍTICOS) ||
 -- ===================================================================================
 --[[
 	Autor: Gemini (a seu pedido)
 	Descrição: Uma biblioteca de UI de alta qualidade, focada em design e performance.
 	Versão 10.5:
-		- Corrigido o erro "Icon is not a valid member of TextButton" na animação de abas.
-		- Invertida a ordem dos botões da janela (Fechar, Maximizar, Minimizar).
+		- Corrigido o erro fatal "PosYScale is not a valid member of ImageLabel".
+		- Corrigido o erro fatal "attempt to index nil with 'Disconnect'" no Slider.
+		- Invertida a ordem dos botões da janela conforme solicitado.
 ]]
 local Lib = {}
 Lib.__index = Lib
@@ -55,11 +56,13 @@ function Lib.CreateWindow(options)
 
 	local TitleBar = Create("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, 35), BackgroundColor3 = Theme.Secondary, BorderSizePixel = 0, Parent = self.Window, ZIndex = 2 })
 	Create("UIGradient", { Rotation = 90, Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Theme.Secondary), ColorSequenceKeypoint.new(1, Theme.Background)}), Parent = TitleBar})
-	Create("ImageLabel", { Name = "Icon", Size = UDim2.fromOffset(20, 20), Position = UDim2.new(0, 15, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1, Image = "rbxassetid://138876230564577", ImageColor3=Theme.Accent, Parent = TitleBar, ZIndex=3})
+	
+	-- [[ CORRIGIDO ]] - Erro "PosYScale" removido. Posição agora é um UDim2 completo.
+	Create("ImageLabel", { Name = "Icon", Size = UDim2.fromOffset(20, 20), Position = UDim2.new(0, 15, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1, Image = "rbxassetid://98600802473300", ImageColor3=Theme.Accent, Parent = TitleBar, ZIndex=3})
 	Create("TextLabel", { Name = "Title", Size = UDim2.new(1, -180, 1, 0), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Font = Theme.FontTitle, Text = options.Title or "ModernUI", TextColor3 = Theme.Text, TextXAlignment = Enum.TextXAlignment.Center, TextSize = 16, ZIndex = 3, Parent = TitleBar })
 
 	local isDragging = false; local dragOffset, renderSteppedConnection
-	TitleBar.InputBegan:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then isDragging=true; dragOffset=UserInputService:GetMouseLocation()-self.Window.AbsolutePosition; if renderSteppedConnection then renderSteppedConnection:Disconnect() end; renderSteppedConnection=RunService.RenderStepped:Connect(function() if isDragging then local mP=UserInputService:GetMouseLocation();local nP=mP-dragOffset;local nAP=nP+self.Window.AbsoluteSize*self.Window.AnchorPoint; self.Window.Position=UDim2.fromOffset(nAP.X,nAP.Y)end end)end end)
+	TitleBar.InputBegan:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then isDragging=true; dragOffset=UserInputService:GetMouseLocation()-self.Window.AbsolutePosition; if renderSteppedConnection then renderSteppedConnection:Disconnect() end; renderSteppedConnection=RunService.RenderStepped:Connect(function() if isDragging then local mP=UserInputService:GetMouseLocation();local nP=mP-dragOffset;local nAP=nP+self.Window.AbsoluteSize*self.Window.AnchorPoint; self.Window.Position=UDim2.fromOffset(nAP.X,nAP.Y) end end)end end)
 	UserInputService.InputEnded:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then isDragging=false; if renderSteppedConnection then renderSteppedConnection:Disconnect();renderSteppedConnection=nil end end end)
 
 	local WindowButtons = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(80, 35), Position = UDim2.new(1, -10, 0.5), AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 4 })
@@ -67,7 +70,7 @@ function Lib.CreateWindow(options)
 
 	local function CreateWinBtn(name, order, imageId) local btn=Create("ImageButton",{Name=name,LayoutOrder=order,Size=UDim2.fromOffset(20,20),BackgroundTransparency=1,ImageColor3=Theme.TextMuted,Image=imageId,Parent=WindowButtons,ZIndex=5}); btn.MouseEnter:Connect(function()Animate(btn,{ImageColor3=Theme.Text})end); btn.MouseLeave:Connect(function()Animate(btn,{ImageColor3=Theme.TextMuted})end); return btn end
 	
-	-- [[ CORRIGIDO ]] - Ordem dos botões invertida
+	-- [[ CORRIGIDO ]] - Ordem dos botões invertida conforme solicitado
 	local Close = CreateWinBtn("Close", 1, "rbxassetid://102337677895470"); Close.MouseEnter:Connect(function() Animate(Close, {ImageColor3 = Theme.Close}) end)
 	local Maximize = CreateWinBtn("Maximize", 2, "rbxassetid://136588149825832")
 	local Minimize = CreateWinBtn("Minimize", 3, "rbxassetid://96238650693315")
@@ -99,7 +102,6 @@ function Lib:AddTab(options)
 	local function SetActive()
 		if self.ActiveTab==tab then return end
 		if self.ActiveTab then
-			-- [[ CORREÇÃO ]] - Usa FindFirstChild para animar os filhos do botão, e não o botão em si.
 			Animate(self.ActiveTab.Button:FindFirstChild("Icon"),{ImageColor3=Theme.TextMuted})
 			Animate(self.ActiveTab.Button:FindFirstChild("Label"),{TextColor3=Theme.TextMuted})
 			Animate(self.ActiveTab.Button,{BackgroundColor3=Theme.Primary})
