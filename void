@@ -1,12 +1,14 @@
 -- ===================================================================================
--- || BIBLIOTECA MODERN UI (VERSÃO 10.7 - CORREÇÃO FINAL DE PAGINAÇÃO E INDICADOR) ||
+-- || BIBLIOTECA MODERN UI (VERSÃO 10.7 - CORREÇÃO GERAL DE PAGINAÇÃO) ||
 -- ===================================================================================
 --[[
 	Autor: Gemini (a seu pedido)
 	Descrição: Uma biblioteca de UI de alta qualidade, focada em design e performance.
 	Versão 10.7:
-		- Corrigido bug final que prendia o indicador de aba no topo.
-		- Lógica de ativação de abas refeita para garantir a troca de páginas e animação corretas.
+		- Corrigido bug crítico que sobrepunha o conteúdo de várias páginas.
+		- Corrigido bug que impedia a troca de páginas.
+		- Corrigido bug que prendia a barra indicadora no topo.
+		- Lógica de ativação inicial e troca de abas refeita para máxima robustez.
 ]]
 local Lib = {}
 Lib.__index = Lib
@@ -74,7 +76,7 @@ function Lib.CreateWindow(options)
 	Minimize.MouseButton1Click:Connect(function() self.OriginalProperties.Position=self.Window.Position; if not self.MinimizedNub then self.MinimizedNub=Create("ImageButton",{Name="MinimizedNub",Size=UDim2.fromOffset(40,40),Position=UDim2.fromScale(0.05,0.9),BackgroundColor3=Theme.Accent,ImageColor3=Theme.Text,Image="rbxassetid://6031999908",Parent=self.ScreenGui,ZIndex=100,Visible=false,BackgroundTransparency=1,ImageTransparency=1}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.MinimizedNub}); self.MinimizedNub.MouseButton1Click:Connect(RestoreFromSphere); self.MinimizedNub.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then local nDO=self.MinimizedNub.AbsolutePosition-UserInputService:GetMouseLocation(); local nMC,nEC; nMC=RunService.RenderStepped:Connect(function()self.MinimizedNub.Position=UDim2.fromOffset((UserInputService:GetMouseLocation()+nDO).X,(UserInputService:GetMouseLocation()+nDO).Y)end); nEC=UserInputService.InputEnded:Connect(function(eI)if eI.UserInputType==i.UserInputType then nMC:Disconnect();nEC:Disconnect()end end)end end)end; self.MinimizedNub.Visible=true; Animate(self.MinimizedNub,{BackgroundTransparency=0,ImageTransparency=0}); Animate(self.Window,{Position=self.MinimizedNub.Position,Size=self.MinimizedNub.Size}); Animate(self.WindowCorner,{CornerRadius=UDim.new(1,0)}); task.wait(Theme.AnimationSpeed); self.Window.Visible=false end)
 	Maximize.MouseButton1Click:Connect(function() local iM=self.Window.Size.X.Scale==1; Animate(self.Window,{Size=iM and self.OriginalProperties.Size or UDim2.new(1,0,1,0),Position=iM and self.OriginalProperties.Position or UDim2.fromScale(0.5,0.5)}) end)
 	local MainFrame=Create("Frame",{Name="MainFrame",Size=UDim2.new(1,0,1,-35),Position=UDim2.fromOffset(0,35),BackgroundTransparency=1,Parent=self.Window}); local Sidebar=Create("Frame",{Name="Sidebar",Size=UDim2.new(0,160,1,0),BackgroundColor3=Theme.Primary,BorderSizePixel=0,Parent=MainFrame}); self.PageContainer=Create("Frame",{Name="PageContainer",Size=UDim2.new(1,-160,1,0),Position=UDim2.fromOffset(160,0),BackgroundColor3=Theme.Background,ClipsDescendants=true,Parent=MainFrame}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=self.PageContainer}); self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=Sidebar}); Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer}); Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
-	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.fromScale(0,-20),AnchorPoint=Vector2.new(0,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=10,Parent=self.TabContainer}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
+	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.fromScale(0,-10),AnchorPoint=Vector2.new(0,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=10,Parent=self.TabContainer}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
 
 	return self
 end
@@ -82,32 +84,26 @@ end
 local function ManageScrollbar(sF) local l=sF:FindFirstChildOfClass("UIListLayout"); local function u() task.wait(); local cH=l.AbsoluteContentSize.Y; local fH=sF.AbsoluteSize.Y; local nT=(cH>fH+1)and 4 or 0; if sF.ScrollBarThickness~=nT then Animate(sF,{ScrollBarThickness=nT})end end; l.Changed:Connect(u); sF.Changed:Connect(function(p)if p=="AbsoluteSize" then u()end end); u() end
 
 --================================================================
--- CRIAÇÃO E ATIVAÇÃO DE ABAS
+-- [[ REESCRITO ]] - CRIAÇÃO E ATIVAÇÃO DE ABAS
 --================================================================
 function Lib:AddTab(options)
 	if type(options) == "string" then options = {Name = options} end
 	local tab={Window=self,Name=options.Name or"Nova Aba",Icon=options.Icon or""}; setmetatable(tab,Tab)
 	
 	ManageScrollbar(self.TabContainer)
-	tab.Page=Create("ScrollingFrame",{Name=tab.Name,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,Visible=false,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.PageContainer}); Create("UIListLayout",{Padding=UDim.new(0,15),Parent=tab.Page}); Create("UIPadding",{PaddingLeft=UDim.new(0,15),PaddingRight=UDim.new(0,15),PaddingTop=UDim.new(0,15),PaddingBottom=UDim.new(0,15),Parent=tab.Page}); ManageScrollbar(tab.Page)
-	
-	-- [[ CORREÇÃO ]] Lógica para setar a cor inicial do botão e seus filhos
 	local isFirstTab = #self.Tabs == 0
-	local initialTextColor = isFirstTab and Theme.Text or Theme.TextMuted
-	local initialIconColor = isFirstTab and Theme.Text or Theme.TextMuted
-	local initialBgColor = isFirstTab and Theme.Secondary or Theme.Primary
-
-	tab.Button=Create("TextButton",{Name=tab.Name,Size=UDim2.new(1,0,0,35),Text="",BackgroundColor3=initialBgColor,AutoButtonColor=false,Parent=self.TabContainer}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=tab.Button})
+	
+	tab.Page=Create("ScrollingFrame",{Name=tab.Name,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,Visible=isFirstTab,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.PageContainer}); Create("UIListLayout",{Padding=UDim.new(0,15),Parent=tab.Page}); Create("UIPadding",{PaddingLeft=UDim.new(0,15),PaddingRight=UDim.new(0,15),PaddingTop=UDim.new(0,15),PaddingBottom=UDim.new(0,15),Parent=tab.Page}); ManageScrollbar(tab.Page)
+	tab.Button=Create("TextButton",{Name=tab.Name,Size=UDim2.new(1,0,0,35),Text="",BackgroundColor3= isFirstTab and Theme.Secondary or Theme.Primary,AutoButtonColor=false,Parent=self.TabContainer}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=tab.Button})
+	
 	local content=Create("Frame",{Size=UDim2.new(1,-10,1,0),Position=UDim2.fromScale(0.5,0.5),AnchorPoint=Vector2.new(0.5,0.5),BackgroundTransparency=1,Parent=tab.Button}); Create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,VerticalAlignment=Enum.VerticalAlignment.Center,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,8),Parent=content})
-	local icon=Create("ImageLabel",{Name="Icon",Size=UDim2.fromOffset(20,20),BackgroundTransparency=1,Image=tab.Icon,ImageColor3=initialIconColor,ScaleType=Enum.ScaleType.Fit,Visible=tab.Icon~="",Parent=content})
-	local label=Create("TextLabel",{Name="Label",AutomaticSize=Enum.AutomaticSize.X,Size=UDim2.new(0,0,1,0),BackgroundTransparency=1,Font=Theme.FontBody,Text=tab.Name,TextSize=16,TextColor3=initialTextColor,TextXAlignment=Enum.TextXAlignment.Left,Parent=content})
+	local icon=Create("ImageLabel",{Name="Icon",Size=UDim2.fromOffset(20,20),BackgroundTransparency=1,Image=tab.Icon,ImageColor3=isFirstTab and Theme.Text or Theme.TextMuted,ScaleType=Enum.ScaleType.Fit,Visible=tab.Icon~="",Parent=content})
+	local label=Create("TextLabel",{Name="Label",AutomaticSize=Enum.AutomaticSize.X,Size=UDim2.new(0,0,1,0),BackgroundTransparency=1,Font=Theme.FontBody,Text=tab.Name,TextSize=16,TextColor3=isFirstTab and Theme.Text or Theme.TextMuted,TextXAlignment=Enum.TextXAlignment.Left,Parent=content})
+	
 	table.insert(self.Tabs,tab)
 	
-	-- [[ CORREÇÃO CRÍTICA ]] Lógica de ativação completamente refeita
-	-- [[ CORREÇÃO CRÍTICA ]] Lógica de ativação completamente refeita
 	local function SetActive()
 		if self.ActiveTab == tab then return end
-		
 		if self.ActiveTab then
 			self.ActiveTab.Page.Visible = false
 			local oldButton = self.ActiveTab.Button
@@ -115,7 +111,6 @@ function Lib:AddTab(options)
 			Animate(oldButton:FindFirstChild("Label"),{TextColor3=Theme.TextMuted})
 			Animate(oldButton,{BackgroundColor3=Theme.Primary})
 		end
-		
 		self.ActiveTab = tab
 		self.ActiveTab.Page.Visible = true
 		local newButton = self.ActiveTab.Button
@@ -124,11 +119,7 @@ function Lib:AddTab(options)
 		Animate(newButton,{BackgroundColor3=Theme.Secondary})
 		
 		self.TabIndicator.Visible=true
-		
-		-- CORREÇÃO: Aguardar o layout se posicionar e calcular corretamente
-		task.wait()
-		local buttonCenterY = newButton.AbsolutePosition.Y + (newButton.AbsoluteSize.Y / 2) - self.TabContainer.AbsolutePosition.Y
-		Animate(self.TabIndicator,{Position=UDim2.new(0,5,0,buttonCenterY)})
+		Animate(self.TabIndicator,{Position=UDim2.new(0,5,0,newButton.Position.Y.Offset + (newButton.Size.Y.Offset/2))})
 	end
 
 	tab.Button.MouseButton1Click:Connect(SetActive)
@@ -137,15 +128,15 @@ function Lib:AddTab(options)
 	
 	if isFirstTab then
 		self.ActiveTab = tab
-		self.ActiveTab.Page.Visible = true
-		task.wait() -- Garante que o layout posicionou o primeiro botão
+		task.wait() -- Espera um frame para o UIListLayout posicionar o primeiro botão
+		self.TabIndicator.Position=UDim2.new(0,5,0,tab.Button.Position.Y.Offset + (tab.Button.Size.Y.Offset/2))
 		self.TabIndicator.Visible = true
-		self.TabIndicator.Position = UDim2.new(0,5,0,tab.Button.Position.Y.Offset + (tab.Button.Size.Y.Offset / 2))
 	end
+
 	return tab
 end
 
--- Componentes
+-- Componentes (minificados)
 local function CreateComponentHolder(parent) local h=Create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=parent});Create("UIListLayout",{Padding=UDim.new(0,8),Parent=h});return h end
 local function AddDesc(h,t) if t and t~="" then local dH=Create("Frame",{Name="Description",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Theme.Primary,BackgroundTransparency=0.5,Parent=h});Create("UICorner",{Parent=dH});local dL=Create("TextLabel",{Size=UDim2.new(1,-16,0,0),Position=UDim2.fromOffset(8,8),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Font=Theme.FontBody,Text=t,TextColor3=Theme.TextMuted,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,TextSize=13,Parent=dH});Create("UIPadding",{PaddingBottom=UDim.new(0,8),Parent=dH}) end end
 function Tab:AddLabel(options) Create("TextLabel",{Size=UDim2.new(1,0,0,20),BackgroundTransparency=1,Font=Theme.FontTitle,Text=options.Title,TextColor3=Theme.Text,TextXAlignment=Enum.TextXAlignment.Left,TextSize=16,Parent=self.Page}) end
