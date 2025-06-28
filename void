@@ -1,16 +1,16 @@
 -- ===================================================================================
--- || BIBLIOTECA MODERN UI (VERSÃO 11.4 - LAYOUT AJUSTADO) ||
+-- || BIBLIOTECA MODERN UI (VERSÃO 11.5 - GRÁFICO DE FPS E SCROLL CORRIGIDOS) ||
 -- ===================================================================================
 --[[
 	Autor: Gemini (a seu pedido)
 	Descrição: Uma biblioteca de UI de alta qualidade, focada em design e performance.
+	Versão 11.5:
+		- Implementada a lógica de desenho do gráfico de FPS para um efeito de "batimento cardíaco".
+		- Corrigido o comportamento do scroll da lista de abas, que agora só é ativado quando o conteúdo transborda.
+		- Resolvido bug no indicador de aba causado pelo scroll indesejado.
 	Versão 11.4:
 		- Atendido pedido de mover o monitor de FPS para o rodapé da sidebar.
-		- Ajustado o container de abas para ocupar o espaço disponível, permitindo scroll apenas quando necessário.
-		- Corrigido o escopo da função de atualização de FPS.
-	Versão 11.3:
-		- Corrigido bug que fazia o nome (Title) das abas não aparecer ao usar ícones.
-		- Padronizada a API de AddTab para usar "Title" em vez de "Name".
+		- Ajustado o container de abas para ocupar o espaço disponível.
 ]]
 local Lib = {}
 Lib.__index = Lib
@@ -50,6 +50,15 @@ function Lib.CreateWindow(options)
 	
 	self.Tabs = {}; self.ActiveTab = nil; self.OriginalProperties = {}; self.MinimizedNub = nil
 
+	-- [[ ALTERAÇÃO ]] - Função para controlar a ativação do scroll das abas
+	function self:UpdateTabScrolling()
+		task.wait() -- Espera um frame para o UIListLayout atualizar o AbsoluteContentSize
+		local contentHeight = self.TabListLayout.AbsoluteContentSize.Y
+		local containerHeight = self.TabContainer.AbsoluteSize.Y
+		local enabled = contentHeight > containerHeight
+		self.TabContainer.ScrollingEnabled = enabled
+	end
+
 	local function RandomName() return tostring(math.random(1000000, 9999999)) end
 	self.ScreenGui = Instance.new("ScreenGui")
 	self.ScreenGui.Name = RandomName(); self.ScreenGui.ResetOnSpawn = false; self.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling; self.ScreenGui.Enabled = true
@@ -80,52 +89,67 @@ function Lib.CreateWindow(options)
 	
 	local MainFrame=Create("Frame",{Name="MainFrame",Size=UDim2.new(1,0,1,-35),Position=UDim2.fromOffset(0,35),BackgroundTransparency=1,Parent=self.Window}); self.Sidebar=Create("Frame",{Name="Sidebar",Size=UDim2.new(0,160,1,0),BackgroundColor3=Theme.Primary,BorderSizePixel=0,Parent=MainFrame,ZIndex=2}); self.PageContainer=Create("Frame",{Name="PageContainer",Size=UDim2.new(1,-160,1,0),Position=UDim2.fromOffset(160,0),BackgroundColor3=Theme.Background,ClipsDescendants=true,Parent=MainFrame}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=self.PageContainer})
 	
-    -- [[ ALTERAÇÃO ]] - O Container de Abas agora tem um tamanho que deixa espaço para o FPS Monitor no final.
-	self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,-65),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.Sidebar,ZIndex=2}); 
-    self.TabListLayout=Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer});
-    self.TabPadding=Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
+	self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,-65),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.Sidebar,ZIndex=2, ScrollingEnabled = false}); 
+	self.TabListLayout=Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer});
+	self.TabPadding=Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
 	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.new(0,35,0.5,0),AnchorPoint=Vector2.new(0,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=3,Parent=self.Sidebar}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
 
-	-- [[ ALTERAÇÃO ]] - O Monitor de FPS agora está posicionado na parte inferior da Sidebar.
-	local FPSFrame=Create("Frame",{
-		Name="FPSMonitor",
-		Size=UDim2.new(1,0,0,60),
-		Position=UDim2.new(0.5, 0, 1, 0), -- Posicionado na base
-		AnchorPoint = Vector2.new(0.5, 1), -- Ancorado na sua própria base
-		BackgroundColor3=Color3.fromRGB(15,17,21),
-		BackgroundTransparency=0.3,
-		Parent=self.Sidebar,
-		ZIndex=3
-	})
+	local FPSFrame=Create("Frame",{Name="FPSMonitor",Size=UDim2.new(1,0,0,60),Position=UDim2.new(0.5, 0, 1, 0),AnchorPoint = Vector2.new(0.5, 1),BackgroundColor3=Color3.fromRGB(15,17,21),BackgroundTransparency=0.3,Parent=self.Sidebar,ZIndex=3})
 	Create("UICorner",{CornerRadius=UDim.new(0,6),Parent=FPSFrame})
 	Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,5),PaddingBottom=UDim.new(0,5),Parent=FPSFrame})
 
 	local FPSLabel=Create("TextLabel",{Size=UDim2.new(1,0,0,20),BackgroundTransparency=1,Font=Theme.FontTitle,Text="60 FPS",TextColor3=Theme.Accent,TextXAlignment=Enum.TextXAlignment.Left,TextSize=14,Parent=FPSFrame})
-	local FPSGraph=Create("Frame",{Size=UDim2.new(1,0,0,25),Position=UDim2.new(0,0,1,-30),BackgroundColor3=Color3.fromRGB(10,12,16),Parent=FPSFrame})
+	local FPSGraph=Create("Frame",{Size=UDim2.new(1,0,1,-30),BackgroundColor3=Color3.fromRGB(10,12,16),Parent=FPSFrame, ClipsDescendants=true})
 	Create("UICorner",{CornerRadius=UDim.new(0,3),Parent=FPSGraph})
 
-	-- [[ ALTERAÇÃO ]] - Lógica do FPS movida para dentro da função para ter acesso ao escopo correto.
 	spawn(function()
 		local fpsHistory = {}
+		local maxHistory = 35 -- [[ ALTERAÇÃO ]] - Quantidade de barras no gráfico
+		local maxFpsForGraph = 90 -- [[ ALTERAÇÃO ]] - O valor de FPS que corresponderá a 100% da altura do gráfico
+
 		while self.ScreenGui and self.ScreenGui.Parent do
 			local deltaTime = RunService.Heartbeat:Wait()
 			local fps = math.floor(1/deltaTime)
 			
 			FPSLabel.Text = fps .. " FPS"
+			table.insert(fpsHistory, fps)
+			if #fpsHistory > maxHistory then table.remove(fpsHistory, 1) end
 			
-			-- Atualizar cor baseado no FPS
-			if fps >= 50 then
-				Animate(FPSLabel, {TextColor3 = Color3.fromRGB(88, 255, 88)})
-			elseif fps >= 30 then
-				Animate(FPSLabel, {TextColor3 = Color3.fromRGB(255, 255, 88)})
-			else
-				Animate(FPSLabel, {TextColor3 = Color3.fromRGB(255, 88, 88)})
+			-- [[ ALTERAÇÃO ]] - Lógica para desenhar o gráfico
+			for _, bar in ipairs(FPSGraph:GetChildren()) do
+				if bar:IsA("Frame") then bar:Destroy() end
 			end
 			
-			task.wait(0.25) -- Atualiza 4x por segundo, mais que suficiente para um display.
+			local graphWidth = FPSGraph.AbsoluteSize.X
+			local barWidth = graphWidth / maxHistory
+			
+			for i, historicFps in ipairs(fpsHistory) do
+				local normalizedHeight = math.clamp(historicFps / maxFpsForGraph, 0, 1)
+				local barColor = Theme.Accent
+
+				if historicFps >= 50 then barColor = Color3.fromRGB(88, 255, 88)
+				elseif historicFps >= 30 then barColor = Color3.fromRGB(255, 255, 88)
+				else barColor = Color3.fromRGB(255, 88, 88) end
+
+				Create("Frame", {
+					Parent = FPSGraph,
+					Size = UDim2.new(0, barWidth, normalizedHeight, 0),
+					Position = UDim2.new(0, (i - 1) * barWidth, 1, 0),
+					AnchorPoint = Vector2.new(0, 1),
+					BackgroundColor3 = barColor,
+					BorderSizePixel = 0
+				})
+			end
+
+			if fps >= 50 then Animate(FPSLabel, {TextColor3 = Color3.fromRGB(88, 255, 88)})
+			elseif fps >= 30 then Animate(FPSLabel, {TextColor3 = Color3.fromRGB(255, 255, 88)})
+			else Animate(FPSLabel, {TextColor3 = Color3.fromRGB(255, 88, 88)}) end
+			
+			task.wait(0.1) -- Atualização mais rápida para um gráfico mais fluido
 		end
 	end)
-
+	
+	self:UpdateTabScrolling() -- Chama a função ao criar a janela
 	return self
 end
 
@@ -151,17 +175,21 @@ function Lib:AddTab(options)
 	local tab={Window=self,Name=tabName,Icon=options.Icon or"rbxassetid://15223838491"}; setmetatable(tab,Tab)
 	local isFirstTab = #self.Tabs == 0
 	
-	tab.Page=Create("ScrollingFrame",{Name=tab.Name,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,Visible=isFirstTab,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(0,0,0,0),Parent=self.PageContainer}); Create("UIListLayout",{Padding=UDim.new(0,15),Parent=tab.Page}); Create("UIPadding",{PaddingLeft=UDim.new(0,15),PaddingRight=UDim.new(0,15),PaddingTop=UDim.new(0,15),PaddingBottom=UDim.new(0,15),Parent=tab.Page});
+	tab.Page=Create("ScrollingFrame",{Name=tab.Name,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,Visible=isFirstTab,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=4,ScrollBarColor=Theme.Accent,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(0,0,0,0),Parent=self.PageContainer}); Create("UIListLayout",{Padding=UDim.new(0,15),Parent=tab.Page}); Create("UIPadding",{PaddingLeft=UDim.new(0,15),PaddingRight=UDim.new(0,15),PaddingTop=UDim.new(0,15),PaddingBottom=UDim.new(0,15),Parent=tab.Page});
 	tab.Button=Create("TextButton",{Name=tab.Name,Size=UDim2.new(1,0,0,35),Text="",BackgroundColor3=isFirstTab and Theme.Secondary or Theme.Primary,AutoButtonColor=false,Parent=self.TabContainer}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=tab.Button})
 	local content=Create("Frame",{Name="Content",Size=UDim2.new(1,-10,1,0),Position=UDim2.fromScale(0.5,0.5),AnchorPoint=Vector2.new(0.5,0.5),BackgroundTransparency=1,Parent=tab.Button}); Create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,VerticalAlignment=Enum.VerticalAlignment.Center,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,8),Parent=content})
 	local icon=Create("ImageLabel",{Name="Icon",Size=UDim2.fromOffset(20,20),BackgroundTransparency=1,Image=tab.Icon,ImageColor3=isFirstTab and Theme.Text or Theme.TextMuted,ScaleType=Enum.ScaleType.Fit,Parent=content})
-	local label=Create("TextLabel",{Name="Label",Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Font=Theme.FontBody,Text=tab.Name,TextSize=16,TextColor3=isFirstTab and Theme.Text or Theme.TextMuted,TextXAlignment=Enum.TextXAlignment.Left,Parent=content})
+	local label=Create("TextLabel",{Name="Label",Size=UDim2.new(1,-28,1,0),BackgroundTransparency=1,Font=Theme.FontBody,Text=tab.Name,TextSize=16,TextColor3=isFirstTab and Theme.Text or Theme.TextMuted,TextXAlignment=Enum.TextXAlignment.Left,Parent=content})
 	
 	tab.Button.MouseButton1Click:Connect(function() self:SwitchToTab(tab) end)
 	tab.Button.MouseEnter:Connect(function()if self.ActiveTab~=tab then Animate(tab.Button,{BackgroundColor3=Color3.fromHSV(0.55, 0.5, 0.27)})end end)
 	tab.Button.MouseLeave:Connect(function()if self.ActiveTab~=tab then Animate(tab.Button,{BackgroundColor3=Theme.Primary})end end)
 	
 	table.insert(self.Tabs,tab)
+	
+	-- [[ ALTERAÇÃO ]] - Atualiza o estado do scroll sempre que uma nova aba é adicionada.
+	self:UpdateTabScrolling()
+
 	if isFirstTab then self:SwitchToTab(tab, true) end
 	return tab
 end
