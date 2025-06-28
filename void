@@ -1,12 +1,14 @@
 -- ===================================================================================
--- || BIBLIOTECA MODERN UI (VERSÃO 11.2 - ÍCONES E MELHORIAS DE LAYOUT) ||
+-- || BIBLIOTECA MODERN UI (VERSÃO 11.2 - REFINAMENTO FINAL) ||
 -- ===================================================================================
 --[[
 	Autor: Gemini (a seu pedido)
 	Descrição: Uma biblioteca de UI de alta qualidade, focada em design e performance.
 	Versão 11.2:
-		- Adicionado suporte para ícones nas abas (com um ícone padrão).
-		- Ordem dos botões da janela (Minimizar, Maximizar, Fechar) corrigida.
+		- Corrigido bug de inicialização do indicador de aba.
+		- Ordem dos botões da janela ajustada para o padrão.
+		- Adicionada animação de fade na troca de páginas.
+		- Ícones da barra de título aumentados.
 ]]
 local Lib = {}
 Lib.__index = Lib
@@ -36,6 +38,22 @@ local Theme = {
 local function Create(iT, p) local i=Instance.new(iT); for P,v in pairs(p or {}) do i[P]=v end; return i end
 local function Animate(i, g) if not i then return end; local t=TweenService:Create(i,TweenInfo.new(Theme.AnimationSpeed,Enum.EasingStyle.Quart,Enum.EasingDirection.Out),g); t:Play(); return t end
 
+-- [[ NOVO ]] - Função para animar a transparência de uma página inteira
+local function AnimatePage(page, goalTransparency)
+	for _, child in ipairs(page:GetDescendants()) do
+		if child:IsA("TextLabel") or child:IsA("TextButton") then
+			Animate(child, {TextTransparency = goalTransparency})
+		elseif child:IsA("ImageLabel") or child:IsA("ImageButton") then
+			Animate(child, {ImageTransparency = goalTransparency})
+		elseif child:IsA("Frame") then
+			Animate(child, {BackgroundTransparency = goalTransparency})
+		end
+		if child:IsA("UIStroke") then
+			Animate(child, {Transparency = goalTransparency})
+		end
+	end
+end
+
 --================================================================
 -- CRIAÇÃO DA JANELA PRINCIPAL
 --================================================================
@@ -55,18 +73,20 @@ function Lib.CreateWindow(options)
 
 	local TitleBar = Create("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, 35), BackgroundColor3 = Theme.Secondary, BorderSizePixel = 0, Parent = self.Window, ZIndex = 3 })
 	Create("UIGradient", { Rotation = 90, Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Theme.Secondary), ColorSequenceKeypoint.new(1, Theme.Background)}), Parent = TitleBar})
-	Create("ImageLabel", { Name = "Icon", Size = UDim2.fromOffset(20, 20), Position = UDim2.new(0, 15, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1, Image = "rbxassetid://98600802473300", ImageColor3=Theme.Accent, Parent = TitleBar, ZIndex=4})
+	
+	-- [[ MELHORADO ]] Ícones maiores
+	Create("ImageLabel", { Name = "Icon", Size = UDim2.fromOffset(22, 22), Position = UDim2.new(0, 15, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1, Image = "rbxassetid://98600802473300", ImageColor3=Theme.Accent, Parent = TitleBar, ZIndex=4})
 	Create("TextLabel", { Name = "Title", Size = UDim2.new(1, -180, 1, 0), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Font = Theme.FontTitle, Text = options.Title or "ModernUI", TextColor3 = Theme.Text, TextXAlignment = Enum.TextXAlignment.Center, TextSize = 16, ZIndex = 4, Parent = TitleBar })
 
 	local isDragging = false; local dragOffset, renderSteppedConnection
 	TitleBar.InputBegan:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then isDragging=true; dragOffset=UserInputService:GetMouseLocation()-self.Window.AbsolutePosition; if renderSteppedConnection then renderSteppedConnection:Disconnect() end; renderSteppedConnection=RunService.RenderStepped:Connect(function() if isDragging then local mP=UserInputService:GetMouseLocation();local nP=mP-dragOffset;local nAP=nP+self.Window.AbsoluteSize*self.Window.AnchorPoint; self.Window.Position=UDim2.fromOffset(nAP.X,nAP.Y) end end)end end)
 	UserInputService.InputEnded:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then isDragging=false; if renderSteppedConnection then renderSteppedConnection:Disconnect();renderSteppedConnection=nil end end end)
 
-	local WindowButtons = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(80, 35), Position = UDim2.new(1, -10, 0.5), AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 5 })
+	local WindowButtons = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(90, 35), Position = UDim2.new(1, -10, 0.5), AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 5 })
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 5), Parent = WindowButtons })
-	local function CreateWinBtn(name, order, imageId) local btn=Create("ImageButton",{Name=name,LayoutOrder=order,Size=UDim2.fromOffset(20,20),BackgroundTransparency=1,ImageColor3=Theme.TextMuted,Image=imageId,Parent=WindowButtons,ZIndex=6}); btn.MouseEnter:Connect(function()Animate(btn,{ImageColor3=Theme.Text})end); btn.MouseLeave:Connect(function()Animate(btn,{ImageColor3=Theme.TextMuted})end); return btn end
+	local function CreateWinBtn(name, order, imageId) local btn=Create("ImageButton",{Name=name,LayoutOrder=order,Size=UDim2.fromOffset(22,22),BackgroundTransparency=1,ImageColor3=Theme.TextMuted,Image=imageId,Parent=WindowButtons,ZIndex=6}); btn.MouseEnter:Connect(function()Animate(btn,{ImageColor3=Theme.Text})end); btn.MouseLeave:Connect(function()Animate(btn,{ImageColor3=Theme.TextMuted})end); return btn end
 	
-	-- [[ CORRIGIDO ]] - Ordem dos botões invertida para o padrão (Minimizar, Maximizar, Fechar)
+	-- [[ CORRIGIDO ]] - Ordem dos botões invertida para o padrão Windows
 	local Minimize = CreateWinBtn("Minimize", 1, "rbxassetid://96238650693315")
 	local Maximize = CreateWinBtn("Maximize", 2, "rbxassetid://136588149825832")
 	local Close = CreateWinBtn("Close", 3, "rbxassetid://102337677895470"); Close.MouseEnter:Connect(function() Animate(Close, {ImageColor3 = Theme.Close}) end)
@@ -77,20 +97,58 @@ function Lib.CreateWindow(options)
 	Maximize.MouseButton1Click:Connect(function() local iM=self.Window.Size.X.Scale==1; Animate(self.Window,{Size=iM and self.OriginalProperties.Size or UDim2.new(1,0,1,0),Position=iM and self.OriginalProperties.Position or UDim2.fromScale(0.5,0.5)}) end)
 	
 	local MainFrame=Create("Frame",{Name="MainFrame",Size=UDim2.new(1,0,1,-35),Position=UDim2.fromOffset(0,35),BackgroundTransparency=1,Parent=self.Window}); self.Sidebar=Create("Frame",{Name="Sidebar",Size=UDim2.new(0,160,1,0),BackgroundColor3=Theme.Primary,BorderSizePixel=0,Parent=MainFrame,ZIndex=2}); self.PageContainer=Create("Frame",{Name="PageContainer",Size=UDim2.new(1,-160,1,0),Position=UDim2.fromOffset(160,0),BackgroundColor3=Theme.Background,ClipsDescendants=true,Parent=MainFrame}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=self.PageContainer})
-	self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.Sidebar,ZIndex=2}); self.TabListLayout=Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer}); self.TabPadding=Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
+	self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.Sidebar,ZIndex=2}); Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer}); Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
 	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.fromScale(0,-20),AnchorPoint=Vector2.new(0,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=1,Parent=self.Sidebar}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
 
 	return self
 end
 
 --================================================================
--- SISTEMA DE ABAS (PAGINAÇÃO)
+-- SISTEMA DE ABAS
 --================================================================
-function Lib:SwitchToTab(tabToActivate)
+function Lib:SwitchToTab(tabToActivate, isInitial)
 	if self.ActiveTab == tabToActivate then return end
-	if self.ActiveTab then self.ActiveTab.Page.Visible=false; local btn=self.ActiveTab.Button; Animate(btn:FindFirstChild("Content"):FindFirstChild("Icon"),{ImageColor3=Theme.TextMuted}); Animate(btn:FindFirstChild("Content"):FindFirstChild("Label"),{TextColor3=Theme.TextMuted}); Animate(btn,{BackgroundColor3=Theme.Primary}) end
-	self.ActiveTab=tabToActivate; self.ActiveTab.Page.Visible=true; local btn=self.ActiveTab.Button; Animate(btn:FindFirstChild("Content"):FindFirstChild("Icon"),{ImageColor3=Theme.Text}); Animate(btn:FindFirstChild("Content"):FindFirstChild("Label"),{TextColor3=Theme.Text}); Animate(btn,{BackgroundColor3=Theme.Secondary})
-	task.spawn(function() task.wait(); if self.ActiveTab~=tabToActivate then return end; local y=btn.AbsolutePosition.Y-self.Sidebar.AbsolutePosition.Y+(btn.AbsoluteSize.Y/2); self.TabIndicator.Visible=true; Animate(self.TabIndicator,{Position=UDim2.new(0,0,0,y)}) end)
+	
+	-- [[ NOVA ANIMAÇÃO ]] Desativa a aba antiga com fade-out
+	if self.ActiveTab then
+		local oldPage = self.ActiveTab.Page
+		AnimatePage(oldPage, 1)
+		task.delay(Theme.AnimationSpeed, function() oldPage.Visible = false end)
+		
+		local oldButton = self.ActiveTab.Button
+		Animate(oldButton:FindFirstChild("Content"):FindFirstChild("Icon"),{ImageColor3=Theme.TextMuted})
+		Animate(oldButton:FindFirstChild("Content"):FindFirstChild("Label"),{TextColor3=Theme.TextMuted})
+		Animate(oldButton,{BackgroundColor3 = Theme.Primary})
+	end
+	
+	-- Ativa a nova aba
+	self.ActiveTab = tabToActivate
+	local newPage = self.ActiveTab.Page
+	local newButton = self.ActiveTab.Button
+	
+	-- [[ NOVA ANIMAÇÃO ]] Ativa a nova aba com fade-in
+	AnimatePage(newPage, 1) -- Prepara para o fade-in, deixando invisível
+	newPage.Visible = true
+	AnimatePage(newPage, 0) -- Anima para visível
+	
+	Animate(newButton:FindFirstChild("Content"):FindFirstChild("Icon"),{ImageColor3=Theme.Text})
+	Animate(newButton:FindFirstChild("Content"):FindFirstChild("Label"),{TextColor3=Theme.Text})
+	Animate(newButton,{BackgroundColor3 = Theme.Secondary})
+	
+	-- Posiciona o indicador
+	task.spawn(function()
+		task.wait() -- Garante que o motor de UI tenha 1 frame para calcular a posição absoluta
+		if self.ActiveTab ~= tabToActivate then return end 
+
+		local targetY = newButton.AbsolutePosition.Y - self.Sidebar.AbsolutePosition.Y + (newButton.AbsoluteSize.Y / 2)
+		self.TabIndicator.Visible = true
+		
+		if isInitial then
+			self.TabIndicator.Position = UDim2.new(0, 0, 0, targetY)
+		else
+			Animate(self.TabIndicator, {Position = UDim2.new(0, 0, 0, targetY)})
+		end
+	end)
 end
 
 function Lib:AddTab(options)
@@ -101,9 +159,7 @@ function Lib:AddTab(options)
 	
 	tab.Page=Create("ScrollingFrame",{Name=tab.Name,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,Visible=isFirstTab,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.PageContainer}); Create("UIListLayout",{Padding=UDim.new(0,15),Parent=tab.Page}); Create("UIPadding",{PaddingLeft=UDim.new(0,15),PaddingRight=UDim.new(0,15),PaddingTop=UDim.new(0,15),PaddingBottom=UDim.new(0,15),Parent=tab.Page});
 	tab.Button=Create("TextButton",{Name=tab.Name,Size=UDim2.new(1,0,0,35),Text="",BackgroundColor3=isFirstTab and Theme.Secondary or Theme.Primary,AutoButtonColor=false,Parent=self.TabContainer}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=tab.Button})
-	
-	local content=Create("Frame",{Name="Content",Size=UDim2.new(1,-10,1,0),Position=UDim2.fromScale(0.5,0.5),AnchorPoint=Vector2.new(0.5,0.5),BackgroundTransparency=1,Parent=tab.Button})
-	local layout=Create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,VerticalAlignment=Enum.VerticalAlignment.Center,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,8),Parent=content})
+	local content=Create("Frame",{Name="Content",Size=UDim2.new(1,-10,1,0),Position=UDim2.fromScale(0.5,0.5),AnchorPoint=Vector2.new(0.5,0.5),BackgroundTransparency=1,Parent=tab.Button}); Create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,VerticalAlignment=Enum.VerticalAlignment.Center,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,8),Parent=content})
 	local icon=Create("ImageLabel",{Name="Icon",Size=UDim2.fromOffset(20,20),BackgroundTransparency=1,Image=tab.Icon,ImageColor3=isFirstTab and Theme.Text or Theme.TextMuted,ScaleType=Enum.ScaleType.Fit,Parent=content})
 	local label=Create("TextLabel",{Name="Label",AutomaticSize=Enum.AutomaticSize.X,Size=UDim2.new(0,0,1,0),BackgroundTransparency=1,Font=Theme.FontBody,Text=tab.Name,TextSize=16,TextColor3=isFirstTab and Theme.Text or Theme.TextMuted,TextXAlignment=Enum.TextXAlignment.Left,Parent=content})
 	
@@ -112,7 +168,7 @@ function Lib:AddTab(options)
 	tab.Button.MouseLeave:Connect(function()if self.ActiveTab~=tab then Animate(tab.Button,{BackgroundColor3=Theme.Primary})end end)
 	
 	table.insert(self.Tabs,tab)
-	if isFirstTab then self.ActiveTab = tab; self:SwitchToTab(tab) end
+	if isFirstTab then self:SwitchToTab(tab, true) end
 
 	return tab
 end
