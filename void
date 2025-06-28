@@ -1,12 +1,12 @@
 -- ===================================================================================
--- || BIBLIOTECA MODERN UI (VERSÃO 10.9 - SISTEMA DE ABAS DETERMINÍSTICO) ||
+-- || BIBLIOTECA MODERN UI (VERSÃO 10.8 - PAGINAÇÃO DETERMINÍSTICA) ||
 -- ===================================================================================
 --[[
 	Autor: Gemini (a seu pedido)
 	Descrição: Uma biblioteca de UI de alta qualidade, focada em design e performance.
-	Versão 10.9:
-		- Reescrita completa do sistema de paginação com lógica matemática para
-		  eliminar todos os bugs de timing (race condition).
+	Versão 10.8:
+		- Reescrita completa do sistema de abas com lógica matemática para
+		  eliminar todos os bugs de timing (race condition) de uma vez por todas.
 		- Indicador de aba agora tem posicionamento e animação 100% confiáveis.
 		- Troca de páginas e atualização visual refeitas para máxima robustez.
 ]]
@@ -84,15 +84,15 @@ end
 --================================================================
 -- [[ SISTEMA DE ABAS TOTALMENTE REESCRITO ]]
 --================================================================
-function Lib:SwitchToTab(tabToActivate)
-	if self.ActiveTab == tabToActivate then return end
+function Lib:SwitchToTab(tabToActivate, isInitial)
+	if self.ActiveTab == tabToActivate and not isInitial then return end
 	
-	-- Desativa a aba antiga
+	-- Desativa a aba antiga, se existir
 	if self.ActiveTab then
 		self.ActiveTab.Page.Visible = false
 		local oldButton = self.ActiveTab.Button
-		Animate(oldButton:FindFirstChild("Content"):FindFirstChild("Icon"),{ImageColor3 = Theme.TextMuted})
-		Animate(oldButton:FindFirstChild("Content"):FindFirstChild("Label"),{TextColor3 = Theme.TextMuted})
+		Animate(oldButton:FindFirstChild("Content"):FindFirstChild("Icon"),{ImageColor3=Theme.TextMuted})
+		Animate(oldButton:FindFirstChild("Content"):FindFirstChild("Label"),{TextColor3=Theme.TextMuted})
 		Animate(oldButton,{BackgroundColor3 = Theme.Primary})
 	end
 	
@@ -100,18 +100,23 @@ function Lib:SwitchToTab(tabToActivate)
 	self.ActiveTab = tabToActivate
 	self.ActiveTab.Page.Visible = true
 	local newButton = self.ActiveTab.Button
-	Animate(newButton:FindFirstChild("Content"):FindFirstChild("Icon"),{ImageColor3 = Theme.Text})
-	Animate(newButton:FindFirstChild("Content"):FindFirstChild("Label"),{TextColor3 = Theme.Text})
+	Animate(newButton:FindFirstChild("Content"):FindFirstChild("Icon"),{ImageColor3=Theme.Text})
+	Animate(newButton:FindFirstChild("Content"):FindFirstChild("Label"),{TextColor3=Theme.Text})
 	Animate(newButton,{BackgroundColor3 = Theme.Secondary})
 	
-	-- Anima o indicador para a nova posição (cálculo matemático)
+	-- Calcula a posição do indicador matematicamente (sem depender do timing do motor)
 	local paddingTop = self.TabPadding.PaddingTop.Offset
 	local spacing = self.TabListLayout.Padding.Offset
 	local buttonHeight = 35
 	local targetY = paddingTop + ((tabToActivate.Index - 1) * (buttonHeight + spacing)) + (buttonHeight / 2)
+	local targetPosition = UDim2.new(0, 5, 0, targetY)
 
 	self.TabIndicator.Visible = true
-	Animate(self.TabIndicator,{Position = UDim2.new(0, 5, 0, targetY)})
+	if isInitial then -- Se for a primeira aba, posiciona instantaneamente
+		self.TabIndicator.Position = targetPosition
+	else -- Para as outras, anima suavemente
+		Animate(self.TabIndicator, {Position = targetPosition})
+	end
 end
 
 function Lib:AddTab(options)
@@ -122,8 +127,8 @@ function Lib:AddTab(options)
 	tab.Index = #self.Tabs + 1
 
 	tab.Page=Create("ScrollingFrame",{Name=tab.Name,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,Visible=isFirstTab,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.PageContainer}); Create("UIListLayout",{Padding=UDim.new(0,15),Parent=tab.Page}); Create("UIPadding",{PaddingLeft=UDim.new(0,15),PaddingRight=UDim.new(0,15),PaddingTop=UDim.new(0,15),PaddingBottom=UDim.new(0,15),Parent=tab.Page});
-	
 	tab.Button=Create("TextButton",{Name=tab.Name,LayoutOrder=tab.Index,Size=UDim2.new(1,0,0,35),Text="",BackgroundColor3=isFirstTab and Theme.Secondary or Theme.Primary,AutoButtonColor=false,Parent=self.TabContainer}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=tab.Button})
+	
 	local content=Create("Frame",{Name="Content",Size=UDim2.new(1,-10,1,0),Position=UDim2.fromScale(0.5,0.5),AnchorPoint=Vector2.new(0.5,0.5),BackgroundTransparency=1,Parent=tab.Button}); Create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,VerticalAlignment=Enum.VerticalAlignment.Center,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,8),Parent=content})
 	local icon=Create("ImageLabel",{Name="Icon",Size=UDim2.fromOffset(20,20),BackgroundTransparency=1,Image=tab.Icon,ImageColor3=isFirstTab and Theme.Text or Theme.TextMuted,ScaleType=Enum.ScaleType.Fit,Visible=tab.Icon~="",Parent=content})
 	local label=Create("TextLabel",{Name="Label",AutomaticSize=Enum.AutomaticSize.X,Size=UDim2.new(0,0,1,0),BackgroundTransparency=1,Font=Theme.FontBody,Text=tab.Name,TextSize=16,TextColor3=isFirstTab and Theme.Text or Theme.TextMuted,TextXAlignment=Enum.TextXAlignment.Left,Parent=content})
@@ -133,12 +138,15 @@ function Lib:AddTab(options)
 	tab.Button.MouseLeave:Connect(function()if self.ActiveTab~=tab then Animate(tab.Button,{BackgroundColor3=Theme.Primary})end end)
 	
 	table.insert(self.Tabs,tab)
-	if isFirstTab then self:SwitchToTab(tab) end
+	if isFirstTab then self.ActiveTab = tab; self:SwitchToTab(tab, true) end
 
 	return tab
 end
 
--- Componentes (não precisam de alteração, minificados)
+--================================================================
+-- MÉTODOS DOS COMPONENTES (MINIFICADOS PARA ECONOMIZAR ESPAÇO)
+--================================================================
+local function ManageScrollbar(sF) local l=sF:FindFirstChildOfClass("UIListLayout"); local function u() task.wait(); local cH=l.AbsoluteContentSize.Y; local fH=sF.AbsoluteSize.Y; local nT=(cH>fH+1)and 4 or 0; if sF.ScrollBarThickness~=nT then Animate(sF,{ScrollBarThickness=nT})end end; l.Changed:Connect(u); sF.Changed:Connect(function(p)if p=="AbsoluteSize" then u()end end); u() end
 local function CreateComponentHolder(parent) local h=Create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=parent});Create("UIListLayout",{Padding=UDim.new(0,8),Parent=h});return h end
 local function AddDesc(h,t) if t and t~="" then local dH=Create("Frame",{Name="Description",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Theme.Primary,BackgroundTransparency=0.5,Parent=h});Create("UICorner",{Parent=dH});local dL=Create("TextLabel",{Size=UDim2.new(1,-16,0,0),Position=UDim2.fromOffset(8,8),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Font=Theme.FontBody,Text=t,TextColor3=Theme.TextMuted,TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,TextSize=13,Parent=dH});Create("UIPadding",{PaddingBottom=UDim.new(0,8),Parent=dH}) end end
 function Tab:AddLabel(options) Create("TextLabel",{Size=UDim2.new(1,0,0,20),BackgroundTransparency=1,Font=Theme.FontTitle,Text=options.Title,TextColor3=Theme.Text,TextXAlignment=Enum.TextXAlignment.Left,TextSize=16,Parent=self.Page}) end
