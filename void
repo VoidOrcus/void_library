@@ -55,7 +55,7 @@ function Lib.CreateWindow(options)
 
 	local TitleBar = Create("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, 35), BackgroundColor3 = Theme.Secondary, BorderSizePixel = 0, Parent = self.Window, ZIndex = 2 })
 	Create("UIGradient", { Rotation = 90, Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Theme.Secondary), ColorSequenceKeypoint.new(1, Theme.Background)}), Parent = TitleBar})
-	Create("ImageLabel", { Name = "Icon", Size = UDim2.fromOffset(20, 20), Position = UDim2.new(0, 15, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1, Image = "rbxassetid://98600802473300", ImageColor3=Theme.Accent, Parent = TitleBar, ZIndex=3})
+	Create("ImageLabel", { Name = "Icon", Size = UDim2.fromOffset(20, 20), Position = UDim2.new(0, 15, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1, Image = "rbxassetid://138876230564577", ImageColor3=Theme.Accent, Parent = TitleBar, ZIndex=3})
 	Create("TextLabel", { Name = "Title", Size = UDim2.new(1, -180, 1, 0), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Font = Theme.FontTitle, Text = options.Title or "ModernUI", TextColor3 = Theme.Text, TextXAlignment = Enum.TextXAlignment.Center, TextSize = 16, ZIndex = 3, Parent = TitleBar })
 
 	local isDragging = false; local dragOffset, renderSteppedConnection
