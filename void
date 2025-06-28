@@ -91,60 +91,46 @@ function Lib.CreateWindow(options)
 	self.TabPadding=Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
 	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.new(0,35,0.5,0),AnchorPoint=Vector2.new(0,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=3,Parent=self.Sidebar}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
 
-	-- [[ MUDANÇA 1: MONITOR FRAME COM DOIS GRÁFICOS ]]
-	local MonitorFrame=Create("Frame",{
-		Name="Monitor",
-		Size=UDim2.new(1,0,0,65), -- Aumentado para acomodar dois gráficos
-		Position=UDim2.new(0.5, 0, 1, -20),
+	-- [[ MUDANÇA 1: CANTOS DO FPS FRAME ]]
+	-- O frame de FPS agora tem ClipsDescendants=true para cortar os cantos do background interno.
+	local FPSFrame=Create("Frame",{
+		Name="FPSMonitor",
+		Size=UDim2.new(1,0,0,45), -- Reduzido para dar espaço ao novo texto
+		Position=UDim2.new(0.5, 0, 1, -20), -- Movido para cima para dar espaço ao novo texto
 		AnchorPoint = Vector2.new(0.5, 1),
-		BackgroundTransparency=1,
-		ClipsDescendants = true,
+		BackgroundTransparency=1, -- O container principal é transparente
+		ClipsDescendants = true, -- Ativado para cortar os cantos inferiores do background
 		Parent=self.Sidebar,
 		ZIndex=3
 	})
 
-	local MonitorBackground = Create("Frame", {
-		Name = "MonitorBackground",
-		Size = UDim2.new(1, 0, 1, 6),
+	-- Este é o novo background que terá os cantos arredondados. Ele é um pouco maior
+	-- para que os cantos inferiores fiquem "para fora" e sejam cortados pelo FPSFrame.
+	local FPSBackground = Create("Frame", {
+		Name = "FPSBackground",
+		Size = UDim2.new(1, 0, 1, 6), -- Tamanho extra para os cantos serem cortados
 		Position = UDim2.fromScale(0, 0),
 		BackgroundColor3=Color3.fromRGB(15,17,21),
 		BackgroundTransparency=0.3,
-		Parent=MonitorFrame,
+		Parent=FPSFrame,
 		ZIndex = 3
 	})
-	Create("UICorner",{CornerRadius=UDim.new(0,6),Parent=MonitorBackground})
-
-	-- Container para os dois gráficos lado a lado
-	local GraphContainer = Create("Frame", {
-		Name = "GraphContainer",
-		Size = UDim2.new(1, -10, 1, -10),
-		Position = UDim2.fromOffset(5, 5),
+	Create("UICorner",{CornerRadius=UDim.new(0,6),Parent=FPSBackground}) -- UICorner agora no background
+	
+	-- [[ MUDANÇA 2: NOVO TEXTO DE FPS ABAIXO ]]
+	-- Adicionado um novo TextLabel no rodapé da Sidebar.
+	local FPSFooterLabel = Create("TextLabel", {
+		Name = "FPSFooter",
+		Size = UDim2.new(1, -10, 0, 20), -- Ocupa o espaço inferior
+		Position = UDim2.new(0.5, 0, 1, 0),
+		AnchorPoint = Vector2.new(0.5, 1),
 		BackgroundTransparency = 1,
-		Parent = MonitorFrame,
-		ZIndex = 4
-	})
-	Create("UIListLayout", {
-		FillDirection = Enum.FillDirection.Horizontal,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Padding = UDim.new(0, 5),
-		Parent = GraphContainer
-	})
-
-	-- FPS Monitor (lado esquerdo)
-	local FPSFrame = Create("Frame", {
-		Name = "FPSMonitor",
-		Size = UDim2.new(0.5, -2.5, 1, 0),
-		BackgroundTransparency = 1,
-		Parent = GraphContainer,
-		ZIndex = 4
-	})
-
-	-- PING Monitor (lado direito)  
-	local PingFrame = Create("Frame", {
-		Name = "PingMonitor", 
-		Size = UDim2.new(0.5, -2.5, 1, 0),
-		BackgroundTransparency = 1,
-		Parent = GraphContainer,
+		Font = Theme.FontBody,
+		Text = "FPS: -",
+		TextColor3 = Color3.fromRGB(44, 55, 122), -- Azul escuro
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextSize = 13,
+		Parent = self.Sidebar,
 		ZIndex = 4
 	})
 
@@ -205,6 +191,7 @@ function Lib.CreateWindow(options)
 	self:UpdateTabScrolling()
 	return self
 end
+
 --================================================================
 -- SISTEMA DE ABAS
 --================================================================
