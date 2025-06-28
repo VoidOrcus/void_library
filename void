@@ -123,11 +123,12 @@ function Lib.CreateWindow(options)
 	local FPSGraph=Create("Frame",{LayoutOrder = 4, Size=UDim2.new(1,0,0,13), BackgroundColor3=Color3.fromRGB(10,12,16), Parent=FPSFrame, ClipsDescendants=true, ZIndex = 4})
 	Create("UICorner",{CornerRadius=UDim.new(0,3),Parent=FPSGraph})
 
+	
 	spawn(function()
-		-- [[ MUDANÇA PING ]] Variáveis para o histórico e cálculo do ping.
+		-- Variáveis para o histórico e cálculo
 		local statsService = game:GetService("Stats")
 		local pingHistory = {}
-		local maxPingForGraph = 250 -- Valor máximo para a altura da barra do gráfico de ping
+		local maxPingForGraph = 250 
 
 		local fpsHistory = {}
 		local maxHistory = 35 
@@ -136,12 +137,17 @@ function Lib.CreateWindow(options)
 		while self.ScreenGui and self.ScreenGui.Parent do
 			local deltaTime = RunService.Heartbeat:Wait()
 			local fps = math.floor(1/deltaTime)
-			local ping = math.floor(statsService.Ping * 1000) -- Ping em milissegundos (ms)
-			
+
+			-- [[ CORREÇÃO ]] Chamada correta para obter o ping
+			local networkStats = statsService:GetNetworkStatistics()
+			local ping = math.floor(networkStats.Ping * 1000)
+
 			-- Atualiza textos
 			FPSLabel.Text = fps .. " FPS"
 			FPSFooterLabel.Text = "FPS: " .. fps
-			PingLabel.text = "MS: " .. ping
+			
+			-- [[ CORREÇÃO ]] Propriedade "Text" corrigida (T maiúsculo)
+			PingLabel.Text = "MS: " .. ping 
 			
 			-- Gerencia histórico de FPS e Ping
 			table.insert(fpsHistory, fps)
@@ -153,18 +159,17 @@ function Lib.CreateWindow(options)
 			for _, bar in ipairs(FPSGraph:GetChildren()) do if bar:IsA("Frame") then bar:Destroy() end end
 			for _, bar in ipairs(PingGraph:GetChildren()) do if bar:IsA("Frame") then bar:Destroy() end end
 			
-			local graphWidth = FPSGraph.AbsoluteSize.X -- Largura é a mesma para ambos
+			local graphWidth = FPSGraph.AbsoluteSize.X 
 			local barWidth = graphWidth / maxHistory
 			
 			-- Desenha gráfico de PING
 			for i, historicPing in ipairs(pingHistory) do
-				local normalizedHeight = math.clamp(historicPing / maxPingForGraph, 0, 1)
+				local normalizedHeight = math.clamp(historicPing / maxPingFor_Graph, 0, 1)
 				local barColor = Theme.Accent
 				
-				-- Lógica de cores para o ping (invertida do FPS: baixo é bom)
-				if historicPing < 80 then barColor = Color3.fromRGB(88, 255, 88) -- Verde
-				elseif historicPing < 150 then barColor = Color3.fromRGB(255, 255, 88) -- Amarelo
-				else barColor = Color3.fromRGB(255, 88, 88) end -- Vermelho
+				if historicPing < 80 then barColor = Color3.fromRGB(88, 255, 88)
+				elseif historicPing < 150 then barColor = Color3.fromRGB(255, 255, 88)
+				else barColor = Color3.fromRGB(255, 88, 88) end
 
 				Create("Frame", { Parent = PingGraph, Size = UDim2.new(0, barWidth, normalizedHeight, 0), Position = UDim2.new(0, (i - 1) * barWidth, 1, 0), AnchorPoint = Vector2.new(0, 1), BackgroundColor3 = barColor, BorderSizePixel = 0 })
 			end
