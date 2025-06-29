@@ -1,9 +1,13 @@
 -- ===================================================================================
--- || BIBLIOTECA MODERN UI (VERSÃO 11.6 - CORREÇÃO DE ERRO CRÍTICO) ||
+-- || BIBLIOTECA MODERN UI (VERSÃO 11.7 - SETOR DE INFORMAÇÕES) ||
 -- ===================================================================================
 --[[
 	Autor: Gemini (a seu pedido)
 	Descrição: Uma biblioteca de UI de alta qualidade, focada em design e performance.
+	Versão 11.7:
+		- Adicionado relógio digital e criado um "setor de informações" fixo no rodapé da sidebar.
+		- O setor de informações contém: Relógio, Separador, Avatar do Jogador e Monitor de FPS.
+		- A lista de abas agora ocupa o espaço restante acima do novo setor.
 	Versão 11.6:
 		- Corrigido erro crítico "ScrollBarColor is not a valid member of ScrollingFrame" que impedia o carregamento.
 	Versão 11.5:
@@ -48,8 +52,11 @@ function Lib.CreateWindow(options)
 	
 	self.Tabs = {}; self.ActiveTab = nil; self.OriginalProperties = {}; self.MinimizedNub = nil
 
+	-- Altura total do novo setor inferior (Relógio + Separador + Avatar + FPS + preenchimentos)
+	local bottomSectorHeight = 225
+
 	function self:UpdateTabScrolling()
-		task.wait() 
+		task.wait()
 		local contentHeight = self.TabListLayout.AbsoluteContentSize.Y
 		local containerHeight = self.TabContainer.AbsoluteSize.Y
 		local enabled = contentHeight > containerHeight
@@ -86,105 +93,83 @@ function Lib.CreateWindow(options)
 	
 	local MainFrame=Create("Frame",{Name="MainFrame",Size=UDim2.new(1,0,1,-35),Position=UDim2.fromOffset(0,35),BackgroundTransparency=1,Parent=self.Window}); self.Sidebar=Create("Frame",{Name="Sidebar",Size=UDim2.new(0,160,1,0),BackgroundColor3=Theme.Primary,BorderSizePixel=0,Parent=MainFrame,ZIndex=2}); self.PageContainer=Create("Frame",{Name="PageContainer",Size=UDim2.new(1,-160,1,0),Position=UDim2.fromOffset(160,0),BackgroundColor3=Theme.Background,ClipsDescendants=true,Parent=MainFrame}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=self.PageContainer})
 	
-	self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,-155),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.Sidebar,ZIndex=2, ScrollingEnabled = false}); 
+	-- Container de Abas (ocupa o espaço restante na parte superior)
+	self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,-bottomSectorHeight),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.Sidebar,ZIndex=2, ScrollingEnabled = false});
 	self.TabListLayout=Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer});
 	self.TabPadding=Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
 	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.new(0,35,0.5,0),AnchorPoint=Vector2.new(0,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=3,Parent=self.Sidebar}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
 
-	-- Avatar do Jogador
-	local AvatarContainer = Create("Frame", {
-		Name = "AvatarContainer",
-		Size = UDim2.new(1, 0, 0, 120),
-		Position = UDim2.new(0.5, 0, 1, -65),
-		AnchorPoint = Vector2.new(0.5, 1),
+	-- Novo Setor de Informações (ancorado na parte inferior)
+	local InfoSector = Create("Frame", {
+		Name = "InfoSector",
+		Size = UDim2.new(1, 0, 0, bottomSectorHeight),
+		Position = UDim2.new(0, 0, 1, 0),
+		AnchorPoint = Vector2.new(0, 1),
 		BackgroundTransparency = 1,
 		Parent = self.Sidebar,
 		ZIndex = 3
 	})
-
-	-- Avatar circular
-	local AvatarFrame = Create("Frame", {
-		Name = "AvatarFrame",
-		Size = UDim2.fromOffset(95, 95),
-		Position = UDim2.new(0.5, 0, 0, 10),
-		AnchorPoint = Vector2.new(0.5, 0),
-		BackgroundColor3 = Theme.Accent,
-		Parent = AvatarContainer,
-		ZIndex = 4
+	local InfoLayout = Create("UIListLayout", {
+		Parent = InfoSector,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Padding = UDim.new(0, 8)
 	})
-	Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = AvatarFrame})
+	Create("UIPadding", {PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),Parent=InfoSector})
 
-	local AvatarImage = Create("ImageLabel", {
-		Name = "AvatarImage",
-		Size = UDim2.new(1, -4, 1, -4),
-		Position = UDim2.fromScale(0.5, 0.5),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundTransparency = 1,
-		Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. game.Players.LocalPlayer.UserId .. "&width=150&height=150&format=png",
-		Parent = AvatarFrame,
-		ZIndex = 5
-	})
-	Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = AvatarImage})
-
-	-- Nome do jogador
-	local PlayerNameLabel = Create("TextLabel", {
-		Name = "PlayerName",
-		Size = UDim2.new(1, -20, 0, 20),
-		Position = UDim2.new(0.5, 0, 0, 10),
-		AnchorPoint = Vector2.new(0.5, 0),
+	-- Relógio Digital
+	local ClockLabel = Create("TextLabel", {
+		Name = "ClockLabel",
+		LayoutOrder = 1,
+		Size = UDim2.new(1, 0, 0, 20),
 		BackgroundTransparency = 1,
 		Font = Theme.FontBody,
-		Text = game.Players.LocalPlayer.Name,
-		TextColor3 = Theme.Text,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextYAlignment = Enum.TextYAlignment.Center,
-		TextSize = 12,
-		TextScaled = true,
-		Parent = AvatarContainer,
-		ZIndex = 4
-	})
-
-	-- Frame de FPS com background que não sobra
-	local FPSFrame=Create("Frame",{
-		Name="FPSMonitor",
-		Size=UDim2.new(1,0,0,65),
-		Position=UDim2.new(0.5, 0, 1, 0),
-		AnchorPoint = Vector2.new(0.5, 1),
-		BackgroundTransparency=1,
-		Parent=self.Sidebar,
-		ZIndex=3
-	})
-
-	-- Background do FPS ajustado para não sobrar
-	local FPSBackground = Create("Frame", {
-		Name = "FPSBackground",
-		Size = UDim2.new(1, 0, 1, 0), -- Tamanho exato, sem sobra
-		Position = UDim2.fromScale(0, 0),
-		BackgroundColor3=Color3.fromRGB(15,17,21),
-		BackgroundTransparency=1,
-		Parent=FPSFrame,
-		ZIndex = 3
-	})
-	-- UICorner apenas nos cantos superiores
-	Create("UICorner",{CornerRadius=UDim.new(0,6),Parent=FPSBackground})
-	
-	-- Novo texto de FPS no rodapé
-	local FPSFooterLabel = Create("TextLabel", {
-		Name = "FPSFooter",
-		Size = UDim2.new(1, -10, 0, 20),
-		Position = UDim2.new(0.5, 0, 1, 0),
-		AnchorPoint = Vector2.new(0.5, 1),
-		BackgroundTransparency = 1,
-		Font = Theme.FontBody,
-		Text = "FPS: -",
-		TextColor3 = Color3.fromRGB(44, 55, 122),
+		Text = "00:00:00",
+		TextColor3 = Color3.fromRGB(44, 55, 122), -- Mesma cor do texto do FPS
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextSize = 13,
-		Parent = self.Sidebar,
+		Parent = InfoSector,
+		ZIndex = 4
+	})
+	
+	-- Separador
+	local Separator = Create("Frame", {
+		Name = "Separator",
+		LayoutOrder = 2,
+		Size = UDim2.new(1, 0, 0, 1),
+		BackgroundColor3 = Theme.Secondary,
+		BorderSizePixel = 0,
+		Parent = InfoSector,
 		ZIndex = 4
 	})
 
-	-- Elementos internos do monitor de FPS
+	-- Avatar do Jogador (movido para o InfoSector)
+	local AvatarContainer = Create("Frame", {
+		Name = "AvatarContainer",
+		LayoutOrder = 3,
+		Size = UDim2.new(1, 0, 0, 120),
+		BackgroundTransparency = 1,
+		Parent = InfoSector,
+		ZIndex = 3
+	})
+	local AvatarFrame = Create("Frame", { Name = "AvatarFrame", Size = UDim2.fromOffset(95, 95), Position = UDim2.new(0.5, 0, 0, 0), AnchorPoint = Vector2.new(0.5, 0), BackgroundColor3 = Theme.Accent, Parent = AvatarContainer, ZIndex = 4 })
+	Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = AvatarFrame})
+	local AvatarImage = Create("ImageLabel", { Name = "AvatarImage", Size = UDim2.new(1, -4, 1, -4), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. game.Players.LocalPlayer.UserId .. "&width=150&height=150&format=png", Parent = AvatarFrame, ZIndex = 5 })
+	Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = AvatarImage})
+	local PlayerNameLabel = Create("TextLabel", { Name = "PlayerName", Size = UDim2.new(1, -20, 0, 20), Position = UDim2.new(0.5, 0, 1, -20), AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 1, Font = Theme.FontBody, Text = game.Players.LocalPlayer.Name, TextColor3 = Theme.Text, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Top, TextSize = 12, TextScaled = true, Parent = AvatarContainer, ZIndex = 4})
+
+	-- Monitor de FPS (movido para o InfoSector)
+	local FPSFrame=Create("Frame",{
+		Name="FPSMonitor",
+		LayoutOrder = 4,
+		Size=UDim2.new(1,0,0,65),
+		BackgroundTransparency=1,
+		Parent=InfoSector,
+		ZIndex=3
+	})
+	local FPSBackground = Create("Frame", { Name = "FPSBackground", Size = UDim2.new(1, 0, 1, 0), Position = UDim2.fromScale(0, 0), BackgroundColor3=Color3.fromRGB(15,17,21), BackgroundTransparency=1, Parent=FPSFrame, ZIndex = 3 })
+	Create("UICorner",{CornerRadius=UDim.new(0,6),Parent=FPSBackground})
+	
 	Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,5),PaddingBottom=UDim.new(0,5),Parent=FPSFrame})
 	local FPSLabel=Create("TextLabel",{Size=UDim2.new(1,0,0,15),BackgroundTransparency=1,Font=Theme.FontTitle,Text="60 FPS",TextColor3=Theme.Accent,TextXAlignment=Enum.TextXAlignment.Left,TextSize=14,Parent=FPSFrame, ZIndex = 4})
 	local FPSGraph=Create("Frame",{Size=UDim2.new(1,0,1,-20),BackgroundColor3=Color3.fromRGB(10,12,16),Parent=FPSFrame, ClipsDescendants=true, ZIndex = 4})
@@ -192,15 +177,22 @@ function Lib.CreateWindow(options)
 	
 	spawn(function()
 		local fpsHistory = {}
-		local maxHistory = 35 
+		local maxHistory = 35
 		local maxFpsForGraph = 90
+		local lastClockUpdate = 0
 
 		while self.ScreenGui and self.ScreenGui.Parent do
 			local deltaTime = RunService.Heartbeat:Wait()
-			local fps = math.floor(1/deltaTime)
 			
+			-- Atualiza o relógio a cada segundo
+			if os.clock() - lastClockUpdate >= 1 then
+				ClockLabel.Text = os.date("%X") -- Formato HH:MM:SS local
+				lastClockUpdate = os.clock()
+			end
+
+			-- Lógica do Gráfico de FPS
+			local fps = math.floor(1/deltaTime)
 			FPSLabel.Text = fps .. " FPS"
-			FPSFooterLabel.Text = "FPS: " .. fps
 			
 			table.insert(fpsHistory, fps)
 			if #fpsHistory > maxHistory then table.remove(fpsHistory, 1) end
@@ -234,7 +226,7 @@ function Lib.CreateWindow(options)
 			elseif fps >= 30 then Animate(FPSLabel, {TextColor3 = Color3.fromRGB(255, 255, 88)})
 			else Animate(FPSLabel, {TextColor3 = Color3.fromRGB(255, 88, 88)}) end
 			
-			task.wait(0.1)
+			task.wait(0.1) -- Reduz a frequência de atualização do gráfico para otimização
 		end
 	end)
 	
@@ -264,8 +256,7 @@ function Lib:AddTab(options)
 	local tab={Window=self,Name=tabName,Icon=options.Icon or"rbxassetid://15223838491"}; setmetatable(tab,Tab)
 	local isFirstTab = #self.Tabs == 0
 	
-	-- [[ ALTERAÇÃO ]] - Removida a propriedade inválida "ScrollBarColor"
-	tab.Page=Create("ScrollingFrame",{Name=tab.Name,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,Visible=isFirstTab,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=4,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(0,0,0,0),Parent=self.PageContainer}); 
+	tab.Page=Create("ScrollingFrame",{Name=tab.Name,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,Visible=isFirstTab,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=4,AutomaticCanvasSize=Enum.AutomaticSize.Y,CanvasSize=UDim2.new(0,0,0,0),Parent=self.PageContainer});
 	Create("UIListLayout",{Padding=UDim.new(0,15),Parent=tab.Page}); Create("UIPadding",{PaddingLeft=UDim.new(0,15),PaddingRight=UDim.new(0,15),PaddingTop=UDim.new(0,15),PaddingBottom=UDim.new(0,15),Parent=tab.Page});
 	
 	tab.Button=Create("TextButton",{Name=tab.Name,Size=UDim2.new(1,0,0,35),Text="",BackgroundColor3=isFirstTab and Theme.Secondary or Theme.Primary,AutoButtonColor=false,Parent=self.TabContainer}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=tab.Button})
@@ -288,19 +279,19 @@ end
 --================================================================
 -- COMPONENTES
 --================================================================
-local function CreateComponentHolder(parent) 
-    local h=Create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=parent})
-    Create("UIListLayout",{Padding=UDim.new(0,12),Parent=h})
-    return h 
+local function CreateComponentHolder(parent)
+	local h=Create("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Parent=parent})
+	Create("UIListLayout",{Padding=UDim.new(0,12),Parent=h})
+	return h
 end
-local function AddDesc(h,t) 
-    if t and t~="" then 
-        local dH=Create("Frame",{Name="Description",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Color3.fromRGB(15,17,21),BackgroundTransparency=0.3,Parent=h})
-        Create("UICorner",{CornerRadius=UDim.new(0,4),Parent=dH})
-        Create("UIStroke",{Color=Color3.fromRGB(40,42,52),Thickness=1,Transparency=0.7,Parent=dH})
-        local dL=Create("TextLabel",{Size=UDim2.new(1,-16,0,0),Position=UDim2.fromOffset(8,8),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Font=Theme.FontBody,Text=t,TextColor3=Color3.fromRGB(160,162,168),TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,TextSize=12,Parent=dH})
-        Create("UIPadding",{PaddingBottom=UDim.new(0,8),Parent=dH}) 
-    end 
+local function AddDesc(h,t)
+	if t and t~="" then
+		local dH=Create("Frame",{Name="Description",Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=Color3.fromRGB(15,17,21),BackgroundTransparency=0.3,Parent=h})
+		Create("UICorner",{CornerRadius=UDim.new(0,4),Parent=dH})
+		Create("UIStroke",{Color=Color3.fromRGB(40,42,52),Thickness=1,Transparency=0.7,Parent=dH})
+		local dL=Create("TextLabel",{Size=UDim2.new(1,-16,0,0),Position=UDim2.fromOffset(8,8),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Font=Theme.FontBody,Text=t,TextColor3=Color3.fromRGB(160,162,168),TextXAlignment=Enum.TextXAlignment.Left,TextWrapped=true,TextSize=12,Parent=dH})
+		Create("UIPadding",{PaddingBottom=UDim.new(0,8),Parent=dH})
+	end
 end
 function Tab:AddLabel(options) Create("TextLabel",{Size=UDim2.new(1,0,0,20),BackgroundTransparency=1,Font=Theme.FontTitle,Text=options.Title,TextColor3=Theme.Text,TextXAlignment=Enum.TextXAlignment.Left,TextSize=16,Parent=self.Page}) end
 function Tab:AddButton(options) local b=Create("TextButton",{Size=UDim2.new(1,0,0,35),BackgroundColor3=Theme.Accent,Font=Theme.FontBody,Text=options.Title,TextColor3=Theme.Text,TextSize=15,Parent=self.Page,AutoButtonColor=false}); Create("UICorner",{Parent=b}); b.MouseButton1Click:Connect(function()if options.Callback then options.Callback()end end) end
