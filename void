@@ -1,5 +1,5 @@
 -- ===================================================================================
--- || BIBLIOTECA MODERN UI (VERSÃO 12.1 - RELEASE y) ||
+-- || BIBLIOTECA MODERN UI (VERSÃO 12.1 - RELEASE a) ||
 -- ===================================================================================
 --[[
 
@@ -47,43 +47,11 @@ function Lib.CreateWindow(options)
 	self.Tabs = {}; self.ActiveTab = nil; self.OriginalProperties = {}; self.MinimizedNub = nil
 
 	local bottomSectorHeight = 265
-	local indicatorOffsetX = 10 
+	local indicatorOffsetX = 10
 
-	--[[ MUDANÇA (LÓGICA): Função para ajustar a altura do container de abas dinamicamente ]]
-	function self:UpdateContainerHeight()
-		task.wait() -- Espera um ciclo para garantir que a contagem de abas está atualizada
-
-		local buttonHeight = 35 -- Altura de cada botão de aba
-		local listPadding = self.TabListLayout.Padding.Offset -- Espaçamento entre os botões
-		local verticalPadding = self.TabPadding.PaddingTop.Offset + self.TabPadding.PaddingBottom.Offset
-
-		local numTabs = #self.Tabs
-		if numTabs == 0 then
-			self.TabContainer.Size = UDim2.new(1, 0, 0, 0) -- Zera a altura se não houver abas
-			return
-		end
-
-		-- Calcula a altura exata necessária para mostrar todas as abas
-		local requiredContentHeight = (numTabs * buttonHeight) + (math.max(0, numTabs - 1) * listPadding)
-		local totalRequiredHeight = requiredContentHeight + verticalPadding
-
-		-- Calcula a altura máxima permitida antes de começar a rolar
-		local maxContainerHeight = self.Sidebar.AbsoluteSize.Y - bottomSectorHeight
-
-		-- Define a altura final, que será a altura necessária ou a máxima permitida
-		local finalHeight = math.min(totalRequiredHeight, maxContainerHeight)
-		
-		-- Anima a mudança de tamanho para um efeito suave
-		Animate(self.TabContainer, { Size = UDim2.new(1, 0, 0, finalHeight) })
-	end
-
-	function self:UpdateTabScrolling()
-		task.wait()
-		local contentHeight = self.TabListLayout.AbsoluteContentSize.Y
-		local containerHeight = self.TabContainer.AbsoluteSize.Y
-		local enabled = contentHeight > containerHeight
-		self.TabContainer.ScrollingEnabled = enabled
-	end
+	--[[ MUDANÇA: A função UpdateTabScrolling não é mais necessária, pois
+	     o novo sistema com AutomaticSize cuida do comportamento da rolagem. ]]
+	-- function self:UpdateTabScrolling() ... end
 
 	local function RandomName() return tostring(math.random(1000000, 9999999)) end
 
@@ -130,27 +98,38 @@ function Lib.CreateWindow(options)
 	self.PageContainer=Create("Frame",{Name="PageContainer",Size=UDim2.new(1,-160,1,0),Position=UDim2.fromOffset(160,0),BackgroundColor3=Theme.Background,ClipsDescendants=true,Parent=MainFrame});
 	Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=self.PageContainer})
 
+	--[[ MUDANÇA: Wrapper para o container de abas.
+	     Este frame define a área máxima que a lista de abas pode ocupar. ]]
+	local TabContainerWrapper = Create("Frame", {
+		Name = "TabContainerWrapper",
+		Size = UDim2.new(1, 0, 1, -bottomSectorHeight), -- Ocupa o espaço disponível acima do InfoSector
+		Position = UDim2.fromScale(0, 0),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true, -- Essencial para que a barra de rolagem funcione
+		Parent = self.Sidebar,
+		ZIndex = 2
+	})
+
+	--[[ MUDANÇA APLICADA AQUI:
+	     - A barra de rolagem agora é preta e mais espessa.
+	     - O container de abas usa AutomaticSize para crescer e encolher com o conteúdo.
+	     - Foi movido para dentro do TabContainerWrapper. ]]
 	self.TabContainer=Create("ScrollingFrame",{
 		Name="TabContainer",
-		Size=UDim2.new(1,0,0,0), -- Começa com altura 0, será ajustada dinamicamente
-		BackgroundTransparency=1, BorderSizePixel=0, ScrollingDirection=Enum.ScrollingDirection.Y,
-		Parent=self.Sidebar, ZIndex=2, ScrollingEnabled = false, ClipsDescendants = true,
-		--[[ MUDANÇA (ESTILO): Cor da barra de rolagem alterada para o fundo escuro ]]
-		ScrollBarThickness = 6,
-		ScrollBarImageColor3 = Theme.Background, -- Cor preta/escura do tema
-		ScrollBarImageTransparency = 0.5 -- Levemente transparente
+		Size=UDim2.new(1, 0, 0, 0), -- A altura será automática
+		AutomaticSize = Enum.AutomaticSize.Y, -- Faz a altura se ajustar ao conteúdo
+		BackgroundTransparency=1,
+		BorderSizePixel=0,
+		ScrollingDirection=Enum.ScrollingDirection.Y,
+		Parent=TabContainerWrapper, -- ANINHADO DENTRO DO WRAPPER
+		ZIndex=2,
+		ScrollBarThickness = 8,
+		ScrollBarImageColor3 = Color3.fromRGB(0, 0, 0), -- Cor da barra de rolagem alterada para preto
+		ScrollBarImageTransparency = 0.6 -- Transparência para um visual suave
 	})
 
 	self.TabListLayout=Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer});
-	
-	--[[ MUDANÇA (POSIÇÃO): Padding direito aumentado para deslocar a barra de rolagem para a esquerda ]]
-	self.TabPadding=Create("UIPadding",{
-		PaddingLeft=UDim.new(0,10),
-		PaddingRight=UDim.new(0,15), -- Aumentado de 10 para 15
-		PaddingTop=UDim.new(0,10),
-		PaddingBottom=UDim.new(0,10), -- Adicionado para cálculo de altura correto
-		Parent=self.TabContainer
-	})
+	self.TabPadding=Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10), PaddingBottom = UDim.new(0, 10), Parent=self.TabContainer})
 
 	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.new(0,indicatorOffsetX,0,0),AnchorPoint=Vector2.new(0.5,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=3,Parent=self.Sidebar});
 	Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
@@ -158,12 +137,14 @@ function Lib.CreateWindow(options)
 	local function UpdateIndicator()
 		if self.ActiveTab and self.ActiveTab.Button then
 			local button = self.ActiveTab.Button
+			--[[ MUDANÇA: Lógica de visibilidade agora usa o Wrapper como referência de tamanho ]]
 			local buttonTop = button.AbsolutePosition.Y
 			local buttonBottom = buttonTop + button.AbsoluteSize.Y
-			local containerTop = self.TabContainer.AbsolutePosition.Y
-			local containerBottom = containerTop + self.TabContainer.AbsoluteSize.Y
+			local containerTop = TabContainerWrapper.AbsolutePosition.Y
+			local containerBottom = containerTop + TabContainerWrapper.AbsoluteSize.Y
 			local isVisible = (buttonBottom > containerTop) and (buttonTop < containerBottom)
 			self.TabIndicator.Visible = isVisible
+
 			if isVisible then
 				local indicatorY = button.AbsolutePosition.Y - self.Sidebar.AbsolutePosition.Y + (button.AbsoluteSize.Y / 2)
 				Animate(self.TabIndicator, { Position = UDim2.new(0, indicatorOffsetX, 0, indicatorY) })
@@ -172,11 +153,11 @@ function Lib.CreateWindow(options)
 	end
 
 	self.TabContainer:GetPropertyChangedSignal("CanvasPosition"):Connect(UpdateIndicator)
-	
-    -- Restante do código da função (InfoSector, FPS, etc.) permanece o mesmo...
+
 	local InfoSector = Create("Frame", { Name = "InfoSector", Size = UDim2.new(1, 0, 0, bottomSectorHeight), Position = UDim2.new(0, 0, 1, 0), AnchorPoint = Vector2.new(0, 1), BackgroundTransparency = 1, Parent = self.Sidebar, ZIndex = 3 })
 	Create("UIListLayout", { Parent = InfoSector, SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 12) })
 	Create("UIPadding", {PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10), PaddingTop=UDim.new(0,10), Parent=InfoSector})
+
 	local ClockLabel = Create("TextLabel", { Name = "ClockLabel", LayoutOrder = 1, Size = UDim2.new(1, 0, 0, 20), BackgroundTransparency = 1, Font = Theme.FontBody, Text = "00:00:00", TextColor3 = Color3.fromRGB(44, 55, 122), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 13, Parent = InfoSector, ZIndex = 4 })
 	local Separator = Create("Frame", { Name = "Separator", LayoutOrder = 2, Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = Theme.Secondary, BorderSizePixel = 0, Parent = InfoSector, ZIndex = 4 })
 	local AvatarContainer = Create("Frame", { Name = "AvatarContainer", LayoutOrder = 3, Size = UDim2.new(1, 0, 0, 120), BackgroundTransparency = 1, Parent = InfoSector, ZIndex = 3 })
@@ -199,27 +180,37 @@ function Lib.CreateWindow(options)
 		local maxHistory = 35
 		local maxFpsForGraph = 90
 		local lastClockUpdate = 0
+
 		while self.ScreenGui and self.ScreenGui.Parent do
 			local deltaTime = RunService.Heartbeat:Wait()
-			if os.clock() - lastClockUpdate >= 1 then ClockLabel.Text = os.date("%X"); lastClockUpdate = os.clock() end
+			if os.clock() - lastClockUpdate >= 1 then
+				ClockLabel.Text = os.date("%X")
+				lastClockUpdate = os.clock()
+			end
+
 			local fps = math.floor(1/deltaTime)
-			FPSLabel.Text = fps .. " FPS"; FPSFooterLabel.Text = "FPS: " .. fps
-			table.insert(fpsHistory, fps); if #fpsHistory > maxHistory then table.remove(fpsHistory, 1) end
+			FPSLabel.Text = fps .. " FPS"
+			FPSFooterLabel.Text = "FPS: " .. fps
+			table.insert(fpsHistory, fps)
+			if #fpsHistory > maxHistory then table.remove(fpsHistory, 1) end
 			for _, bar in ipairs(FPSGraph:GetChildren()) do if bar:IsA("Frame") then bar:Destroy() end end
 			local graphWidth = FPSGraph.AbsoluteSize.X
 			local barWidth = graphWidth / maxHistory
+
 			for i, historicFps in ipairs(fpsHistory) do
 				local normalizedHeight = math.clamp(historicFps / maxFpsForGraph, 0, 1)
 				local barColor = historicFps >= 50 and Color3.fromRGB(88, 255, 88) or (historicFps >= 30 and Color3.fromRGB(255, 255, 88) or Color3.fromRGB(255, 88, 88))
 				Create("Frame", { Parent = FPSGraph, Size = UDim2.new(0, barWidth, normalizedHeight, 0), Position = UDim2.new(0, (i - 1) * barWidth, 1, 0), AnchorPoint = Vector2.new(0, 1), BackgroundColor3 = barColor, BorderSizePixel = 0 })
 			end
-			if fps >= 50 then Animate(FPSLabel, {TextColor3 = Color3.fromRGB(88, 255, 88)}) elseif fps >= 30 then Animate(FPSLabel, {TextColor3 = Color3.fromRGB(255, 255, 88)}) else Animate(FPSLabel, {TextColor3 = Color3.fromRGB(255, 88, 88)}) end
+
+			if fps >= 50 then Animate(FPSLabel, {TextColor3 = Color3.fromRGB(88, 255, 88)})
+			elseif fps >= 30 then Animate(FPSLabel, {TextColor3 = Color3.fromRGB(255, 255, 88)})
+			else Animate(FPSLabel, {TextColor3 = Color3.fromRGB(255, 88, 88)}) end
 			task.wait(0.1)
 		end
 	end)
 
-	self:UpdateContainerHeight() -- Chama a função para definir a altura inicial (0)
-	self:UpdateTabScrolling()
+	-- self:UpdateTabScrolling() -- Chamada removida
 	return self
 end
 
