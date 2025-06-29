@@ -52,7 +52,7 @@ function Lib.CreateWindow(options)
 	self.Tabs = {}; self.ActiveTab = nil; self.OriginalProperties = {}; self.MinimizedNub = nil
 
 	local bottomSectorHeight = 265
-	local indicatorOffsetX = 35 -- [[ MUDANÇA ]] Posição X do indicador
+	local indicatorOffsetX = 5 -- [[ MUDANÇA ]] Posição X do indicador movida para a esquerda
 
 	function self:UpdateTabScrolling()
 		task.wait()
@@ -82,9 +82,10 @@ function Lib.CreateWindow(options)
 	local WindowButtons = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(90, 35), Position = UDim2.new(1, -10, 0.5), AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 5 })
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 5), Parent = WindowButtons })
 	local function CreateWinBtn(name, order, imageId) local btn=Create("ImageButton",{Name=name,LayoutOrder=order,Size=UDim2.fromOffset(22,22),BackgroundTransparency=1,ImageColor3=Theme.TextMuted,Image=imageId,Parent=WindowButtons,ZIndex=6}); btn.MouseEnter:Connect(function()Animate(btn,{ImageColor3=Theme.Text})end); btn.MouseLeave:Connect(function()Animate(btn,{ImageColor3=Theme.TextMuted})end); return btn end
-	local Minimize = CreateWinBtn("Minimize", 1, "rbxassetid://96238650693315")
+	-- [[ MUDANÇA ]] Invertendo as posições dos botões: Close agora é 1, Maximize 2, Minimize 3
+	local Close = CreateWinBtn("Close", 1, "rbxassetid://102337677895470"); Close.MouseEnter:Connect(function() Animate(Close, {ImageColor3 = Theme.Close}) end)
 	local Maximize = CreateWinBtn("Maximize", 2, "rbxassetid://136588149825832")
-	local Close = CreateWinBtn("Close", 3, "rbxassetid://102337677895470"); Close.MouseEnter:Connect(function() Animate(Close, {ImageColor3 = Theme.Close}) end)
+	local Minimize = CreateWinBtn("Minimize", 3, "rbxassetid://96238650693315")
 	Close.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
 	local function RestoreFromSphere() if not self.MinimizedNub then return end; self.Window.Position=self.MinimizedNub.Position; self.Window.Size=self.MinimizedNub.Size; self.WindowCorner.CornerRadius=UDim.new(1,0); self.Window.Visible=true; Animate(self.MinimizedNub,{BackgroundTransparency=1,ImageTransparency=1}); Animate(self.Window,{Position=self.OriginalProperties.Position,Size=self.OriginalProperties.Size}); Animate(self.WindowCorner,{CornerRadius=UDim.new(0,Theme.CornerRadius)}); task.wait(Theme.AnimationSpeed); if self.MinimizedNub then self.MinimizedNub.Visible=false end end
 	Minimize.MouseButton1Click:Connect(function() self.OriginalProperties.Position=self.Window.Position; if not self.MinimizedNub then self.MinimizedNub=Create("ImageButton",{Name="MinimizedNub",Size=UDim2.fromOffset(80,80),Position=UDim2.fromScale(0.05,0.9),BackgroundTransparency=0.5,Image="rbxassetid://77081342387323",Parent=self.ScreenGui,ZIndex=100,Visible=false,ImageTransparency=1}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.MinimizedNub}); self.MinimizedNub.MouseButton1Click:Connect(RestoreFromSphere); self.MinimizedNub.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then local nDO=self.MinimizedNub.AbsolutePosition-UserInputService:GetMouseLocation(); local nMC,nEC; nMC=RunService.RenderStepped:Connect(function()self.MinimizedNub.Position=UDim2.fromOffset((UserInputService:GetMouseLocation()+nDO).X,(UserInputService:GetMouseLocation()+nDO).Y)end); nEC=UserInputService.InputEnded:Connect(function(eI)if eI.UserInputType==i.UserInputType then nMC:Disconnect();nEC:Disconnect()end end)end end)end; self.MinimizedNub.Visible=true; Animate(self.MinimizedNub,{BackgroundTransparency=0,ImageTransparency=0}); Animate(self.Window,{Position=self.MinimizedNub.Position,Size=self.MinimizedNub.Size}); Animate(self.WindowCorner,{CornerRadius=UDim.new(1,0)}); task.wait(Theme.AnimationSpeed); self.Window.Visible=false end)
@@ -101,19 +102,31 @@ function Lib.CreateWindow(options)
 		if self.ActiveTab and self.ActiveTab.Button then
 			local button = self.ActiveTab.Button
 			
-			-- [[ MUDANÇA ]] Lógica de visibilidade do indicador
+			-- [[ MUDANÇA ]] Lógica melhorada de visibilidade do indicador com clipping
 			local buttonTop = button.AbsolutePosition.Y
 			local buttonBottom = buttonTop + button.AbsoluteSize.Y
 			local containerTop = self.TabContainer.AbsolutePosition.Y
 			local containerBottom = containerTop + self.TabContainer.AbsoluteSize.Y
 			
-			-- O indicador só é visível se o botão estiver dentro da área visível do container
+			-- Verificar se o botão está pelo menos parcialmente visível
 			local isVisible = (buttonBottom > containerTop) and (buttonTop < containerBottom)
 			self.TabIndicator.Visible = isVisible
 
 			if isVisible then
 				local indicatorY = button.AbsolutePosition.Y - self.Sidebar.AbsolutePosition.Y + (button.AbsoluteSize.Y / 2)
-				self.TabIndicator.Position = UDim2.new(0, indicatorOffsetX, 0, indicatorY)
+				
+				-- [[ MUDANÇA ]] Calcular o tamanho do indicador baseado na visibilidade do botão
+				local visibleTop = math.max(buttonTop, containerTop)
+				local visibleBottom = math.min(buttonBottom, containerBottom)
+				local visibleHeight = visibleBottom - visibleTop
+				local originalHeight = 35 - 10 -- altura original do indicador
+				local clippedHeight = math.min(visibleHeight, originalHeight)
+				
+				-- Ajustar a posição Y do indicador baseado na parte visível
+				local adjustedY = visibleTop - self.Sidebar.AbsolutePosition.Y + (clippedHeight / 2)
+				
+				self.TabIndicator.Position = UDim2.new(0, indicatorOffsetX, 0, adjustedY)
+				self.TabIndicator.Size = UDim2.new(0, 3, 0, clippedHeight)
 			end
 		end
 	end
