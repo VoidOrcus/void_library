@@ -2,20 +2,7 @@
 -- || BIBLIOTECA MODERN UI (VERSÃO 12.1 - RELEASE CANDIDATE x) ||
 -- ===================================================================================
 --[[
-Autor: Gemini (a seu pedido)
-Descrição: Uma biblioteca de UI de alta qualidade, focada em design e performance.
-Versão 12.1:
-- Indicador de aba movido para a borda externa esquerda da barra lateral.
-- Aumentado o espaçamento no setor de informações para melhor respiro visual (move o FPS para baixo).
-- Limpeza geral do código e remoção de espaços desnecessários.
-Versão 12.0:
-- Posição do indicador de aba ajustada para a direita, mais próxima aos ícones.
-- Indicador de aba agora é recortado (torna-se invisível) quando a aba ativa sai da visão de scroll.
-- Substituído o sistema 'AutomaticCanvasSize' por um atualizador manual para corrigir definitivamente o bug do "scroll vazio".
-Versão 11.9:
-- Corrigida a lógica do indicador de aba. Agora ele anima corretamente na troca E segue a aba ativa durante o scroll.
-- Corrigido o cálculo do CanvasSize das páginas de conteúdo, eliminando o "scroll infinito" com espaço vazio.
-- Corrigido um bug de posicionamento no componente Slider.
+
 ]]
 
 local Lib = {}
@@ -89,17 +76,43 @@ function Lib.CreateWindow(options)
 	UserInputService.InputEnded:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then isDragging=false; if renderSteppedConnection then renderSteppedConnection:Disconnect();renderSteppedConnection=nil end end end)
 
 	local WindowButtons = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(90, 35), Position = UDim2.new(1, -10, 0.5), AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 5 })
-	
-	-- [[ MUDANÇA 1 ]] Alinhamento alterado para 'Left' para uma ordenação mais intuitiva.
-	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Left, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 5), Parent = WindowButtons })
-	
-	local function CreateWinBtn(name, order, imageId) local btn=Create("ImageButton",{Name=name,LayoutOrder=order,Size=UDim2.fromOffset(22,22),BackgroundTransparency=1,ImageColor3=Theme.TextMuted,Image=imageId,Parent=WindowButtons,ZIndex=6}); btn.MouseEnter:Connect(function()Animate(btn,{ImageColor3=Theme.Text})end); btn.MouseLeave:Connect(function()Animate(btn,{ImageColor3=Theme.TextMuted})end); return btn end
-	
-    -- [[ MUDANÇA 2 ]] Ordem do LayoutOrder ajustada para a nova lógica (1=esquerda, 2=meio, 3=direita).
-    -- Ordem Visual: Minimizar, Maximizar, Fechar
-	local Minimize = CreateWinBtn("Minimize", 1, "rbxassetid://96238650693315")
-	local Maximize = CreateWinBtn("Maximize", 2, "rbxassetid://136588149825832")
-	local Close = CreateWinBtn("Close", 3, "rbxassetid://102337677895470")
+
+	--[[ MUDANÇA: UIListLayout removido para usar posições exatas ]]
+	-- Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 5), Parent = WindowButtons })
+
+	-- [[ MUDANÇA: Função de criação de botão simplificada e posições definidas manualmente abaixo ]]
+	local function CreateWinBtn(name, imageId)
+		local btn = Create("ImageButton",{
+			Name = name,
+			Size = UDim2.fromOffset(22,22),
+			BackgroundTransparency = 1,
+			ImageColor3 = Theme.TextMuted,
+			Image = imageId,
+			Parent = WindowButtons,
+			ZIndex = 6
+		})
+		btn.MouseEnter:Connect(function() Animate(btn, {ImageColor3 = Theme.Text}) end)
+		btn.MouseLeave:Connect(function() Animate(btn, {ImageColor3 = Theme.TextMuted}) end)
+		return btn
+	end
+
+	-- Ordem Visual: Minimizar, Maximizar, Fechar
+	local Minimize = CreateWinBtn("Minimize", "rbxassetid://96238650693315")
+	local Maximize = CreateWinBtn("Maximize", "rbxassetid://136588149825832")
+	local Close = CreateWinBtn("Close", "rbxassetid://102337677895470")
+
+	-- [[ MUDANÇA: Definindo posições exatas para cada botão ]]
+	-- As posições são relativas ao container 'WindowButtons' e centralizadas verticalmente.
+	-- O espaçamento entre os botões é de 5 pixels.
+	Minimize.Position = UDim2.new(0, (90/2) - 22 - 5, 0.5, 0) -- Esquerda
+	Minimize.AnchorPoint = Vector2.new(0.5, 0.5)
+
+	Maximize.Position = UDim2.new(0.5, 0, 0.5, 0) -- Centro
+	Maximize.AnchorPoint = Vector2.new(0.5, 0.5)
+
+	Close.Position = UDim2.new(0, (90/2) + 22 + 5, 0.5, 0) -- Direita
+	Close.AnchorPoint = Vector2.new(0.5, 0.5)
+
 
 	Close.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
 	local function RestoreFromSphere() if not self.MinimizedNub then return end; self.Window.Position=self.MinimizedNub.Position; self.Window.Size=self.MinimizedNub.Size; self.WindowCorner.CornerRadius=UDim.new(1,0); self.Window.Visible=true; Animate(self.MinimizedNub,{BackgroundTransparency=1,ImageTransparency=1}); Animate(self.Window,{Position=self.OriginalProperties.Position,Size=self.OriginalProperties.Size}); Animate(self.WindowCorner,{CornerRadius=UDim.new(0,Theme.CornerRadius)}); task.wait(Theme.AnimationSpeed); if self.MinimizedNub then self.MinimizedNub.Visible=false end end
