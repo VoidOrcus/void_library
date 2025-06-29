@@ -86,10 +86,63 @@ function Lib.CreateWindow(options)
 	
 	local MainFrame=Create("Frame",{Name="MainFrame",Size=UDim2.new(1,0,1,-35),Position=UDim2.fromOffset(0,35),BackgroundTransparency=1,Parent=self.Window}); self.Sidebar=Create("Frame",{Name="Sidebar",Size=UDim2.new(0,160,1,0),BackgroundColor3=Theme.Primary,BorderSizePixel=0,Parent=MainFrame,ZIndex=2}); self.PageContainer=Create("Frame",{Name="PageContainer",Size=UDim2.new(1,-160,1,0),Position=UDim2.fromOffset(160,0),BackgroundColor3=Theme.Background,ClipsDescendants=true,Parent=MainFrame}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=self.PageContainer})
 	
-	self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,-65),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.Sidebar,ZIndex=2, ScrollingEnabled = false}); 
+	self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,-155),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.Sidebar,ZIndex=2, ScrollingEnabled = false}); 
 	self.TabListLayout=Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer});
 	self.TabPadding=Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
 	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.new(0,35,0.5,0),AnchorPoint=Vector2.new(0,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=3,Parent=self.Sidebar}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
+
+	-- Avatar do Jogador
+	local AvatarContainer = Create("Frame", {
+		Name = "AvatarContainer",
+		Size = UDim2.new(1, 0, 0, 90),
+		Position = UDim2.new(0.5, 0, 1, -155),
+		AnchorPoint = Vector2.new(0.5, 1),
+		BackgroundTransparency = 1,
+		Parent = self.Sidebar,
+		ZIndex = 3
+	})
+
+	-- Avatar circular
+	local AvatarFrame = Create("Frame", {
+		Name = "AvatarFrame",
+		Size = UDim2.fromOffset(50, 50),
+		Position = UDim2.new(0.5, 0, 0, 10),
+		AnchorPoint = Vector2.new(0.5, 0),
+		BackgroundColor3 = Theme.Accent,
+		Parent = AvatarContainer,
+		ZIndex = 4
+	})
+	Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = AvatarFrame})
+
+	local AvatarImage = Create("ImageLabel", {
+		Name = "AvatarImage",
+		Size = UDim2.new(1, -4, 1, -4),
+		Position = UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. game.Players.LocalPlayer.UserId .. "&width=150&height=150&format=png",
+		Parent = AvatarFrame,
+		ZIndex = 5
+	})
+	Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = AvatarImage})
+
+	-- Nome do jogador
+	local PlayerNameLabel = Create("TextLabel", {
+		Name = "PlayerName",
+		Size = UDim2.new(1, -20, 0, 20),
+		Position = UDim2.new(0.5, 0, 0, 65),
+		AnchorPoint = Vector2.new(0.5, 0),
+		BackgroundTransparency = 1,
+		Font = Theme.FontBody,
+		Text = game.Players.LocalPlayer.Name,
+		TextColor3 = Theme.Text,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextYAlignment = Enum.TextYAlignment.Center,
+		TextSize = 12,
+		TextScaled = true,
+		Parent = AvatarContainer,
+		ZIndex = 4
+	})
 
 	-- Frame de FPS com background que não sobra
 	local FPSFrame=Create("Frame",{
