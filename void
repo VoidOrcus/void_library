@@ -81,7 +81,7 @@ function Lib.CreateWindow(options)
 	local Close = CreateWinBtn("Close", 3, "rbxassetid://102337677895470"); Close.MouseEnter:Connect(function() Animate(Close, {ImageColor3 = Theme.Close}) end)
 	Close.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
 	local function RestoreFromSphere() if not self.MinimizedNub then return end; self.Window.Position=self.MinimizedNub.Position; self.Window.Size=self.MinimizedNub.Size; self.WindowCorner.CornerRadius=UDim.new(1,0); self.Window.Visible=true; Animate(self.MinimizedNub,{BackgroundTransparency=1,ImageTransparency=1}); Animate(self.Window,{Position=self.OriginalProperties.Position,Size=self.OriginalProperties.Size}); Animate(self.WindowCorner,{CornerRadius=UDim.new(0,Theme.CornerRadius)}); task.wait(Theme.AnimationSpeed); if self.MinimizedNub then self.MinimizedNub.Visible=false end end
-	Minimize.MouseButton1Click:Connect(function() self.OriginalProperties.Position=self.Window.Position; if not self.MinimizedNub then self.MinimizedNub=Create("ImageButton",{Name="MinimizedNub",Size=UDim2.fromOffset(80,80),Position=UDim2.fromScale(0.05,0.9),BackgroundTransparency=1,Image="rbxassetid://77081342387323",Parent=self.ScreenGui,ZIndex=100,Visible=false,ImageTransparency=1}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.MinimizedNub}); self.MinimizedNub.MouseButton1Click:Connect(RestoreFromSphere); self.MinimizedNub.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then local nDO=self.MinimizedNub.AbsolutePosition-UserInputService:GetMouseLocation(); local nMC,nEC; nMC=RunService.RenderStepped:Connect(function()self.MinimizedNub.Position=UDim2.fromOffset((UserInputService:GetMouseLocation()+nDO).X,(UserInputService:GetMouseLocation()+nDO).Y)end); nEC=UserInputService.InputEnded:Connect(function(eI)if eI.UserInputType==i.UserInputType then nMC:Disconnect();nEC:Disconnect()end end)end end)end; self.MinimizedNub.Visible=true; Animate(self.MinimizedNub,{BackgroundTransparency=0,ImageTransparency=0}); Animate(self.Window,{Position=self.MinimizedNub.Position,Size=self.MinimizedNub.Size}); Animate(self.WindowCorner,{CornerRadius=UDim.new(1,0)}); task.wait(Theme.AnimationSpeed); self.Window.Visible=false end)
+	Minimize.MouseButton1Click:Connect(function() self.OriginalProperties.Position=self.Window.Position; if not self.MinimizedNub then self.MinimizedNub=Create("ImageButton",{Name="MinimizedNub",Size=UDim2.fromOffset(80,80),Position=UDim2.fromScale(0.05,0.9),BackgroundTransparency=0.5,Image="rbxassetid://77081342387323",Parent=self.ScreenGui,ZIndex=100,Visible=false,ImageTransparency=1}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.MinimizedNub}); self.MinimizedNub.MouseButton1Click:Connect(RestoreFromSphere); self.MinimizedNub.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then local nDO=self.MinimizedNub.AbsolutePosition-UserInputService:GetMouseLocation(); local nMC,nEC; nMC=RunService.RenderStepped:Connect(function()self.MinimizedNub.Position=UDim2.fromOffset((UserInputService:GetMouseLocation()+nDO).X,(UserInputService:GetMouseLocation()+nDO).Y)end); nEC=UserInputService.InputEnded:Connect(function(eI)if eI.UserInputType==i.UserInputType then nMC:Disconnect();nEC:Disconnect()end end)end end)end; self.MinimizedNub.Visible=true; Animate(self.MinimizedNub,{BackgroundTransparency=0,ImageTransparency=0}); Animate(self.Window,{Position=self.MinimizedNub.Position,Size=self.MinimizedNub.Size}); Animate(self.WindowCorner,{CornerRadius=UDim.new(1,0)}); task.wait(Theme.AnimationSpeed); self.Window.Visible=false end)
 	Maximize.MouseButton1Click:Connect(function() local iM=self.Window.Size.X.Scale==1; Animate(self.Window,{Size=iM and self.OriginalProperties.Size or UDim2.new(1,0,1,0),Position=iM and self.OriginalProperties.Position or UDim2.fromScale(0.5,0.5)}) end)
 	
 	local MainFrame=Create("Frame",{Name="MainFrame",Size=UDim2.new(1,0,1,-35),Position=UDim2.fromOffset(0,35),BackgroundTransparency=1,Parent=self.Window}); self.Sidebar=Create("Frame",{Name="Sidebar",Size=UDim2.new(0,160,1,0),BackgroundColor3=Theme.Primary,BorderSizePixel=0,Parent=MainFrame,ZIndex=2}); self.PageContainer=Create("Frame",{Name="PageContainer",Size=UDim2.new(1,-160,1,0),Position=UDim2.fromOffset(160,0),BackgroundColor3=Theme.Background,ClipsDescendants=true,Parent=MainFrame}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=self.PageContainer})
@@ -95,7 +95,7 @@ function Lib.CreateWindow(options)
 	local AvatarContainer = Create("Frame", {
 		Name = "AvatarContainer",
 		Size = UDim2.new(1, 0, 0, 120),
-		Position = UDim2.new(0.5, 0, 1, -40),
+		Position = UDim2.new(0.5, 0, 1, -65),
 		AnchorPoint = Vector2.new(0.5, 1),
 		BackgroundTransparency = 1,
 		Parent = self.Sidebar,
@@ -130,7 +130,7 @@ function Lib.CreateWindow(options)
 	local PlayerNameLabel = Create("TextLabel", {
 		Name = "PlayerName",
 		Size = UDim2.new(1, -20, 0, 20),
-		Position = UDim2.new(0.5, 0, 0, -20),
+		Position = UDim2.new(0.5, 0, 0, 10),
 		AnchorPoint = Vector2.new(0.5, 0),
 		BackgroundTransparency = 1,
 		Font = Theme.FontBody,
