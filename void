@@ -261,8 +261,26 @@ function Lib:AddTab(options)
 	local tab={Window=self,Name=tabName,Icon=options.Icon or"rbxassetid://15223838491"}; setmetatable(tab,Tab)
 	local isFirstTab = #self.Tabs == 0
 
-	-- Usando atualizador manual de CanvasSize para máxima estabilidade
-	tab.Page=Create("ScrollingFrame",{Name=tab.Name,Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,Visible=isFirstTab,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=4,AutomaticCanvasSize=Enum.AutomaticSize.None,Parent=self.PageContainer});
+	--[[
+		MUDANÇA APLICADA AQUI:
+		As propriedades da barra de rolagem (ScrollBar) foram ajustadas para
+		torná-la mais espessa e claramente visível.
+	]]
+	tab.Page=Create("ScrollingFrame",{
+		Name=tab.Name,
+		Size=UDim2.new(1,0,1,0),
+		BackgroundTransparency=1,
+		BorderSizePixel=0,
+		Visible=isFirstTab,
+		ScrollingDirection=Enum.ScrollingDirection.Y,
+		AutomaticCanvasSize=Enum.AutomaticSize.None,
+		Parent=self.PageContainer,
+		-- Propriedades para a barra de rolagem visível
+		ScrollBarThickness = 8, -- Aumenta a espessura para facilitar o clique e arrasto.
+		ScrollBarImageColor3 = Theme.TextMuted, -- Define uma cor que contrasta com o fundo.
+		ScrollBarImageTransparency = 0.4 -- Deixa a barra um pouco transparente para um visual suave.
+	});
+
 	local listLayout = Create("UIListLayout",{Padding=UDim.new(0,15),SortOrder=Enum.SortOrder.LayoutOrder,Parent=tab.Page});
 	Create("UIPadding",{PaddingLeft=UDim.new(0,15),PaddingRight=UDim.new(0,15),PaddingTop=UDim.new(0,15),PaddingBottom=UDim.new(0,15),Parent=tab.Page});
 
