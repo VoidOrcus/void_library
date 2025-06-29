@@ -1,5 +1,5 @@
 -- ===================================================================================
--- || BIBLIOTECA MODERN UI (VERSÃO 12.1 - RELEASE CANDIDATE x) ||
+-- || BIBLIOTECA MODERN UI (VERSÃO 12.1 - RELEASE CANDIDATEbx) ||
 -- ===================================================================================
 --[[
 
@@ -77,10 +77,6 @@ function Lib.CreateWindow(options)
 
 	local WindowButtons = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(90, 35), Position = UDim2.new(1, -10, 0.5), AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 5 })
 
-	--[[ MUDANÇA: UIListLayout removido para usar posições exatas ]]
-	-- Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 5), Parent = WindowButtons })
-
-	-- [[ MUDANÇA: Função de criação de botão simplificada e posições definidas manualmente abaixo ]]
 	local function CreateWinBtn(name, imageId)
 		local btn = Create("ImageButton",{
 			Name = name,
@@ -96,23 +92,16 @@ function Lib.CreateWindow(options)
 		return btn
 	end
 
-	-- Ordem Visual: Minimizar, Maximizar, Fechar
 	local Minimize = CreateWinBtn("Minimize", "rbxassetid://96238650693315")
 	local Maximize = CreateWinBtn("Maximize", "rbxassetid://136588149825832")
 	local Close = CreateWinBtn("Close", "rbxassetid://102337677895470")
 
-	-- [[ MUDANÇA: Definindo posições exatas para cada botão ]]
-	-- As posições são relativas ao container 'WindowButtons' e centralizadas verticalmente.
-	-- O espaçamento entre os botões é de 5 pixels.
-	Minimize.Position = UDim2.new(0, (90/2) - 22 - 5, 0.5, 0) -- Esquerda
+	Minimize.Position = UDim2.new(0, (90/2) - 22 - 5, 0.5, 0)
 	Minimize.AnchorPoint = Vector2.new(0.5, 0.5)
-
-	Maximize.Position = UDim2.new(0.5, 0, 0.5, 0) -- Centro
+	Maximize.Position = UDim2.new(0.5, 0, 0.5, 0)
 	Maximize.AnchorPoint = Vector2.new(0.5, 0.5)
-
-	Close.Position = UDim2.new(0, (90/2) + 22 + 5, 0.5, 0) -- Direita
+	Close.Position = UDim2.new(0, (90/2) + 22 + 5, 0.5, 0)
 	Close.AnchorPoint = Vector2.new(0.5, 0.5)
-
 
 	Close.MouseButton1Click:Connect(function() self.ScreenGui:Destroy() end)
 	local function RestoreFromSphere() if not self.MinimizedNub then return end; self.Window.Position=self.MinimizedNub.Position; self.Window.Size=self.MinimizedNub.Size; self.WindowCorner.CornerRadius=UDim.new(1,0); self.Window.Visible=true; Animate(self.MinimizedNub,{BackgroundTransparency=1,ImageTransparency=1}); Animate(self.Window,{Position=self.OriginalProperties.Position,Size=self.OriginalProperties.Size}); Animate(self.WindowCorner,{CornerRadius=UDim.new(0,Theme.CornerRadius)}); task.wait(Theme.AnimationSpeed); if self.MinimizedNub then self.MinimizedNub.Visible=false end end
@@ -124,7 +113,26 @@ function Lib.CreateWindow(options)
 	self.PageContainer=Create("Frame",{Name="PageContainer",Size=UDim2.new(1,-160,1,0),Position=UDim2.fromOffset(160,0),BackgroundColor3=Theme.Background,ClipsDescendants=true,Parent=MainFrame});
 	Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=self.PageContainer})
 
-	self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,-bottomSectorHeight),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.Sidebar,ZIndex=2, ScrollingEnabled = false, ClipsDescendants = true});
+	--[[
+		MUDANÇA APLICADA AQUI:
+		A barra de rolagem do 'TabContainer' foi alterada de espessura 0 para 6
+		e agora tem uma cor e transparência definidas para ser visível.
+	]]
+	self.TabContainer=Create("ScrollingFrame",{
+		Name="TabContainer",
+		Size=UDim2.new(1,0,1,-bottomSectorHeight),
+		BackgroundTransparency=1,
+		BorderSizePixel=0,
+		ScrollingDirection=Enum.ScrollingDirection.Y,
+		Parent=self.Sidebar,
+		ZIndex=2,
+		ScrollingEnabled = false,
+		ClipsDescendants = true,
+		ScrollBarThickness = 6,
+		ScrollBarImageColor3 = Theme.Secondary,
+		ScrollBarImageTransparency = 0.2
+	})
+
 	self.TabListLayout=Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer});
 	self.TabPadding=Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
 	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.new(0,indicatorOffsetX,0,0),AnchorPoint=Vector2.new(0.5,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=3,Parent=self.Sidebar});
@@ -133,18 +141,15 @@ function Lib.CreateWindow(options)
 	local function UpdateIndicator()
 		if self.ActiveTab and self.ActiveTab.Button then
 			local button = self.ActiveTab.Button
-			-- Lógica de visibilidade do indicador
 			local buttonTop = button.AbsolutePosition.Y
 			local buttonBottom = buttonTop + button.AbsoluteSize.Y
 			local containerTop = self.TabContainer.AbsolutePosition.Y
 			local containerBottom = containerTop + self.TabContainer.AbsoluteSize.Y
-			-- O indicador só é visível se o botão estiver dentro da área visível do container
 			local isVisible = (buttonBottom > containerTop) and (buttonTop < containerBottom)
 			self.TabIndicator.Visible = isVisible
 
 			if isVisible then
 				local indicatorY = button.AbsolutePosition.Y - self.Sidebar.AbsolutePosition.Y + (button.AbsoluteSize.Y / 2)
-				-- Anima o indicador para a posição Y correta
 				Animate(self.TabIndicator, { Position = UDim2.new(0, indicatorOffsetX, 0, indicatorY) })
 			end
 		end
@@ -153,7 +158,6 @@ function Lib.CreateWindow(options)
 	self.TabContainer:GetPropertyChangedSignal("CanvasPosition"):Connect(UpdateIndicator)
 
 	local InfoSector = Create("Frame", { Name = "InfoSector", Size = UDim2.new(1, 0, 0, bottomSectorHeight), Position = UDim2.new(0, 0, 1, 0), AnchorPoint = Vector2.new(0, 1), BackgroundTransparency = 1, Parent = self.Sidebar, ZIndex = 3 })
-	-- Aumentado o Padding para empurrar o conteúdo (inclusive o FPS) para baixo.
 	Create("UIListLayout", { Parent = InfoSector, SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 12) })
 	Create("UIPadding", {PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10), PaddingTop=UDim.new(0,10), Parent=InfoSector})
 
