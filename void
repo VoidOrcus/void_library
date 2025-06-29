@@ -1,5 +1,5 @@
 -- ===================================================================================
--- || BIBLIOTECA MODERN UI (VERSÃO 12.1 - RELEASE CANDIDATEbx) ||
+-- || BIBLIOTECA MODERN UI (VERSÃO 12.1 - RELEASE c) ||
 -- ===================================================================================
 --[[
 
@@ -46,8 +46,14 @@ function Lib.CreateWindow(options)
 
 	self.Tabs = {}; self.ActiveTab = nil; self.OriginalProperties = {}; self.MinimizedNub = nil
 
-	local bottomSectorHeight = 265
-	local indicatorOffsetX = 10 -- Posição X do indicador (movido para a esquerda)
+	--[[
+		MUDANÇA 1: O espaço para a lista de abas foi reduzido.
+		Aumentamos o valor de 'bottomSectorHeight' de 265 para 340.
+		Isso dá menos espaço para o container das abas e mais para o setor de informações,
+		eliminando o espaço vazio que você mencionou. Sinta-se à vontade para ajustar este valor.
+	]]
+	local bottomSectorHeight = 340 -- VALOR AJUSTADO (original: 265)
+	local indicatorOffsetX = 10 
 
 	function self:UpdateTabScrolling()
 		task.wait()
@@ -112,12 +118,7 @@ function Lib.CreateWindow(options)
 	self.Sidebar=Create("Frame",{Name="Sidebar",Size=UDim2.new(0,160,1,0),BackgroundColor3=Theme.Primary,BorderSizePixel=0,Parent=MainFrame,ZIndex=2});
 	self.PageContainer=Create("Frame",{Name="PageContainer",Size=UDim2.new(1,-160,1,0),Position=UDim2.fromOffset(160,0),BackgroundColor3=Theme.Background,ClipsDescendants=true,Parent=MainFrame});
 	Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=self.PageContainer})
-
-	--[[
-		MUDANÇA APLICADA AQUI:
-		A barra de rolagem do 'TabContainer' foi alterada de espessura 0 para 6
-		e agora tem uma cor e transparência definidas para ser visível.
-	]]
+	
 	self.TabContainer=Create("ScrollingFrame",{
 		Name="TabContainer",
 		Size=UDim2.new(1,0,1,-bottomSectorHeight),
@@ -129,12 +130,17 @@ function Lib.CreateWindow(options)
 		ScrollingEnabled = false,
 		ClipsDescendants = true,
 		ScrollBarThickness = 6,
-		ScrollBarImageColor3 = Theme.Secondary,
-		ScrollBarImageTransparency = 0.2
+		--[[ MUDANÇA 2: Cor da barra de rolagem alterada para o preto do tema. ]]
+		ScrollBarImageColor3 = Theme.Background,
+		ScrollBarImageTransparency = 0 -- Totalmente opaca para melhor visibilidade
 	})
 
 	self.TabListLayout=Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer});
-	self.TabPadding=Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
+	
+	--[[ MUDANÇA 3: Posição da barra de rolagem ajustada. ]]
+	-- O 'PaddingRight' foi diminuído para 4, o que move a barra de rolagem para a esquerda.
+	self.TabPadding=Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,4),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
+
 	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.new(0,indicatorOffsetX,0,0),AnchorPoint=Vector2.new(0.5,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=3,Parent=self.Sidebar});
 	Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
 
