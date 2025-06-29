@@ -89,11 +89,14 @@ function Lib.CreateWindow(options)
 	UserInputService.InputEnded:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then isDragging=false; if renderSteppedConnection then renderSteppedConnection:Disconnect();renderSteppedConnection=nil end end end)
 
 	local WindowButtons = Create("Frame", { Name = "WindowButtons", Size = UDim2.fromOffset(90, 35), Position = UDim2.new(1, -10, 0.5), AnchorPoint=Vector2.new(1,0.5), BackgroundTransparency = 1, Parent = TitleBar, ZIndex = 5 })
-	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 5), Parent = WindowButtons })
+	
+	-- [[ MUDANÇA 1 ]] Alinhamento alterado para 'Left' para uma ordenação mais intuitiva.
+	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Left, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 5), Parent = WindowButtons })
+	
 	local function CreateWinBtn(name, order, imageId) local btn=Create("ImageButton",{Name=name,LayoutOrder=order,Size=UDim2.fromOffset(22,22),BackgroundTransparency=1,ImageColor3=Theme.TextMuted,Image=imageId,Parent=WindowButtons,ZIndex=6}); btn.MouseEnter:Connect(function()Animate(btn,{ImageColor3=Theme.Text})end); btn.MouseLeave:Connect(function()Animate(btn,{ImageColor3=Theme.TextMuted})end); return btn end
 	
-    -- [[ MUDANÇA ]] Ordem dos botões ajustada conforme solicitado.
-    -- LayoutOrder 1 = Mais à direita, LayoutOrder 3 = Mais à esquerda.
+    -- [[ MUDANÇA 2 ]] Ordem do LayoutOrder ajustada para a nova lógica (1=esquerda, 2=meio, 3=direita).
+    -- Ordem Visual: Minimizar, Maximizar, Fechar
 	local Minimize = CreateWinBtn("Minimize", 1, "rbxassetid://96238650693315")
 	local Maximize = CreateWinBtn("Maximize", 2, "rbxassetid://136588149825832")
 	local Close = CreateWinBtn("Close", 3, "rbxassetid://102337677895470")
@@ -149,11 +152,11 @@ function Lib.CreateWindow(options)
 	local AvatarImage = Create("ImageLabel", { Name = "AvatarImage", Size = UDim2.new(1, -4, 1, -4), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. game.Players.LocalPlayer.UserId .. "&width=150&height=150&format=png", Parent = AvatarFrame, ZIndex = 5 })
 	Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = AvatarImage})
 	local PlayerNameLabel = Create("TextLabel", { Name = "PlayerName", Size = UDim2.new(1, -20, 0, 20), Position = UDim2.new(0.5, 0, 1, -20), AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 1, Font = Theme.FontBody, Text = game.Players.LocalPlayer.Name, TextColor3 = Theme.Text, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Top, TextSize = 12, TextScaled = true, Parent = AvatarContainer, ZIndex = 4})
-	local FPSFrame=Create("Frame",{ Name="FPSMonitor", LayoutOrder = 4, Size=UDim2.new(1,0,0,65), BackgroundTransparency=1, Parent=InfoSector, ZIndex=3 })
+	local FPSFrame=Create("Frame",{ Name="FPSMonitor", LayoutOrder = 4, Size=UDim2.new(1,0,0,80), BackgroundTransparency=1, Parent=InfoSector, ZIndex=3 })
 	local FPSBackground = Create("Frame", { Name = "FPSBackground", Size = UDim2.new(1, 0, 1, 0), Position = UDim2.fromScale(0, 0), BackgroundColor3=Color3.fromRGB(15,17,21), BackgroundTransparency=1, Parent=FPSFrame, ZIndex = 3 })
 	Create("UICorner",{CornerRadius=UDim.new(0,6),Parent=FPSBackground})
 	Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,5),PaddingBottom=UDim.new(0,5),Parent=FPSFrame})
-	local FPSLabel=Create("TextLabel",{Size=UDim2.new(1,0,0,35),BackgroundTransparency=1,Font=Theme.FontTitle,Text="60 FPS",TextColor3=Theme.Accent,TextXAlignment=Enum.TextXAlignment.Center,TextSize=14,Parent=FPSFrame, ZIndex = 4})
+	local FPSLabel=Create("TextLabel",{Size=UDim2.new(1,0,0,-5),BackgroundTransparency=1,Font=Theme.FontTitle,Text="60 FPS",TextColor3=Theme.Accent,TextXAlignment=Enum.TextXAlignment.Center,TextSize=14,Parent=FPSFrame, ZIndex = 4})
 	local FPSGraph=Create("Frame",{Size=UDim2.new(1,0,1,-20),BackgroundColor3=Color3.fromRGB(10,12,16),Parent=FPSFrame, ClipsDescendants=true, ZIndex = 4})
 	Create("UICorner",{CornerRadius=UDim.new(0,3),Parent=FPSGraph})
 	local FPSFooterLabel = Create("TextLabel", { Name = "FPSFooter", LayoutOrder = 5, Size = UDim2.new(1, 0, 0, 20), BackgroundTransparency = 1, Font = Theme.FontBody, Text = "FPS: -", TextColor3 = Color3.fromRGB(44, 55, 122), TextXAlignment = Enum.TextXAlignment.Center, TextSize = 13, Parent = InfoSector, ZIndex = 4 })
