@@ -1,13 +1,13 @@
 -- ===================================================================================
--- || BIBLIOTECA MODERN UI (VERSÃO 12.1 - CANDIDATE x) ||
+-- || BIBLIOTECA MODERN UI (VERSÃO 12.1 - CANDIDATO DE RELEASE) ||
 -- ===================================================================================
 --[[
 	Autor: Gemini (a seu pedido)
 	Descrição: Uma biblioteca de UI de alta qualidade, focada em design e performance.
 	Versão 12.1:
-		- Posição do indicador de aba ajustada para a esquerda, antes dos ícones.
-		- Indicador de aba agora é filho do container de abas, permitindo o recorte (clipping) correto durante o scroll.
-		- Invertida a posição dos botões de fechar e minimizar.
+		- Posição do indicador de aba ajustada para a esquerda dos ícones.
+		- Corrigido o problema de recorte do indicador. Agora ele é filho do TabContainer e tem sua posição corretamente calculada para ser recortado (clipped) ao sair da visão.
+		- Invertida a posição dos botões 'Fechar' e 'Minimizar' na barra de título.
 	Versão 12.0:
 		- Posição do indicador de aba ajustada para a direita, mais próxima aos ícones.
 		- Indicador de aba agora é recortado (torna-se invisível) quando a aba ativa sai da visão de scroll.
@@ -56,7 +56,8 @@ function Lib.CreateWindow(options)
 	self.Tabs = {}; self.ActiveTab = nil; self.OriginalProperties = {}; self.MinimizedNub = nil
 
 	local bottomSectorHeight = 265
-	local indicatorOffsetX = 12 -- [[ MUDANÇA ]] Posição X do indicador (agora à esquerda)
+	-- [[ MUDANÇA ]] Posição X do indicador ajustada para a esquerda
+	local indicatorOffsetX = 8
 
 	function self:UpdateTabScrolling()
 		task.wait()
@@ -87,7 +88,7 @@ function Lib.CreateWindow(options)
 	Create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 5), Parent = WindowButtons })
 	local function CreateWinBtn(name, order, imageId) local btn=Create("ImageButton",{Name=name,LayoutOrder=order,Size=UDim2.fromOffset(22,22),BackgroundTransparency=1,ImageColor3=Theme.TextMuted,Image=imageId,Parent=WindowButtons,ZIndex=6}); btn.MouseEnter:Connect(function()Animate(btn,{ImageColor3=Theme.Text})end); btn.MouseLeave:Connect(function()Animate(btn,{ImageColor3=Theme.TextMuted})end); return btn end
 	
-	-- [[ MUDANÇA ]] Ordem dos botões invertida (Close=1, Minimize=3)
+    -- [[ MUDANÇA ]] Posições dos botões 'Close' e 'Minimize' invertidas
 	local Close = CreateWinBtn("Close", 1, "rbxassetid://102337677895470"); Close.MouseEnter:Connect(function() Animate(Close, {ImageColor3 = Theme.Close}) end)
 	local Maximize = CreateWinBtn("Maximize", 2, "rbxassetid://136588149825832")
 	local Minimize = CreateWinBtn("Minimize", 3, "rbxassetid://96238650693315")
@@ -103,25 +104,17 @@ function Lib.CreateWindow(options)
 	self.TabListLayout=Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer});
 	self.TabPadding=Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
 
-	-- [[ MUDANÇA ]] Indicador agora é filho de 'TabContainer' para ter o recorte (clipping) correto
+	-- [[ MUDANÇA ]] Indicador agora é filho do TabContainer para ser recortado corretamente.
 	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.new(0,indicatorOffsetX,0,0),AnchorPoint=Vector2.new(0.5,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=3,Parent=self.TabContainer}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
 
 	local function UpdateIndicator()
 		if self.ActiveTab and self.ActiveTab.Button then
 			local button = self.ActiveTab.Button
+			self.TabIndicator.Visible = true -- Visibilidade é controlada pelo clipping do container
 			
-			-- [[ MUDANÇA ]] Lógica de visibilidade simplificada e cálculo da posição Y corrigido.
-			-- O recorte (clipping) agora é automático porque o indicador está dentro do ScrollingFrame.
-			self.TabIndicator.Visible = true
-
-			-- A posição Y é relativa ao canvas de rolagem
-			local indicatorY = button.Position.Y.Offset + (button.AbsoluteSize.Y / 2)
-			local newPos = UDim2.new(0, indicatorOffsetX, 0, indicatorY)
-			
-			-- Evita animações desnecessárias no scroll
-			if self.TabIndicator.Position ~= newPos then
-				self.TabIndicator.Position = newPos
-			end
+			-- [[ MUDANÇA ]] Cálculo de posição relativo ao canvas do ScrollingFrame
+			local indicatorY = button.Position.Y.Offset + (button.Size.Y.Offset / 2)
+			self.TabIndicator.Position = UDim2.new(0, indicatorOffsetX, 0, indicatorY)
 		end
 	end
 	
@@ -209,16 +202,16 @@ function Lib:SwitchToTab(tabToActivate, isInitial)
 		task.wait()
 		if self.ActiveTab ~= tabToActivate then return end
 		
-		local indicatorOffsetX = 12
-		local button = newButton
-		
-		-- [[ MUDANÇA ]] Lógica de visibilidade e posicionamento corrigida
-		-- O clipping é automático, então apenas tornamos visível e calculamos a posição Y relativa
-		self.TabIndicator.Visible = true
+		-- Pega o valor definido na criação da janela
+		local indicatorOffsetX = 8
 
-		local targetY = button.Position.Y.Offset + (button.AbsoluteSize.Y / 2)
+		self.TabIndicator.Visible = true -- Clipping automático trata a visibilidade
+		
+		-- [[ MUDANÇA ]] Cálculo de posição relativo ao canvas e ao botão
+		local button = newButton
+		local targetY = button.Position.Y.Offset + (button.Size.Y.Offset / 2)
 		local targetPos = UDim2.new(0, indicatorOffsetX, 0, targetY)
-			
+		
 		if isInitial then
 			self.TabIndicator.Position = targetPos
 		else
@@ -251,8 +244,8 @@ function Lib:AddTab(options)
 	
 	tab.Button=Create("TextButton",{Name=tab.Name,Size=UDim2.new(1,0,0,35),Text="",BackgroundColor3=isFirstTab and Theme.Secondary or Theme.Primary,AutoButtonColor=false,Parent=self.TabContainer}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=tab.Button})
 	local content=Create("Frame",{Name="Content",Size=UDim2.new(1,-10,1,0),Position=UDim2.fromScale(0.5,0.5),AnchorPoint=Vector2.new(0.5,0.5),BackgroundTransparency=1,Parent=tab.Button}); Create("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,VerticalAlignment=Enum.VerticalAlignment.Center,SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,8),Parent=content})
-	local icon=Create("ImageLabel",{Name="Icon",Size=UDim2.fromOffset(20,20),BackgroundTransparency=1,Image=tab.Icon,ImageColor3=isFirstTab and Theme.Text or Theme.TextMuted,ScaleType=Enum.ScaleType.Fit,Parent=content})
-	local label=Create("TextLabel",{Name="Label",Size=UDim2.new(1,-28,1,0),BackgroundTransparency=1,Font=Theme.FontBody,Text=tab.Name,TextSize=16,TextColor3=isFirstTab and Theme.Text or Theme.TextMuted,TextXAlignment=Enum.TextXAlignment.Left,Parent=content})
+	local icon=Create("ImageLabel",{Name="Icon",Size=UDim2.fromOffset(20,20),BackgroundTransparency=1,Image=tab.Icon,ImageColor3=isFirstTab and Theme.Text or Theme.TextMuted,ScaleType=Enum.ScaleType.Fit,Parent=content, LayoutOrder = 1})
+	local label=Create("TextLabel",{Name="Label",Size=UDim2.new(1,-28,1,0),BackgroundTransparency=1,Font=Theme.FontBody,Text=tab.Name,TextSize=16,TextColor3=isFirstTab and Theme.Text or Theme.TextMuted,TextXAlignment=Enum.TextXAlignment.Left,Parent=content, LayoutOrder = 2})
 	
 	tab.Button.MouseButton1Click:Connect(function() self:SwitchToTab(tab) end)
 	tab.Button.MouseEnter:Connect(function()if self.ActiveTab~=tab then Animate(tab.Button,{BackgroundColor3=Color3.fromHSV(0.55, 0.5, 0.27)})end end)
