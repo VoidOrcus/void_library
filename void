@@ -86,7 +86,7 @@ function Lib.CreateWindow(options)
 	
 	local MainFrame=Create("Frame",{Name="MainFrame",Size=UDim2.new(1,0,1,-35),Position=UDim2.fromOffset(0,35),BackgroundTransparency=1,Parent=self.Window}); self.Sidebar=Create("Frame",{Name="Sidebar",Size=UDim2.new(0,160,1,0),BackgroundColor3=Theme.Primary,BorderSizePixel=0,Parent=MainFrame,ZIndex=2}); self.PageContainer=Create("Frame",{Name="PageContainer",Size=UDim2.new(1,-160,1,0),Position=UDim2.fromOffset(160,0),BackgroundColor3=Theme.Background,ClipsDescendants=true,Parent=MainFrame}); Create("UICorner",{CornerRadius=UDim.new(0,Theme.CornerRadius),Parent=self.PageContainer})
 	
-	self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,-185),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.Sidebar,ZIndex=2, ScrollingEnabled = false}); 
+	self.TabContainer=Create("ScrollingFrame",{Name="TabContainer",Size=UDim2.new(1,0,1,-155),BackgroundTransparency=1,BorderSizePixel=0,ScrollingDirection=Enum.ScrollingDirection.Y,ScrollBarThickness=0,Parent=self.Sidebar,ZIndex=2, ScrollingEnabled = false}); 
 	self.TabListLayout=Create("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=self.TabContainer});
 	self.TabPadding=Create("UIPadding",{PaddingLeft=UDim.new(0,10),PaddingRight=UDim.new(0,10),PaddingTop=UDim.new(0,10),Parent=self.TabContainer})
 	self.TabIndicator=Create("Frame",{Name="Indicator",Size=UDim2.new(0,3,0,35-10),Position=UDim2.new(0,35,0.5,0),AnchorPoint=Vector2.new(0,0.5),BackgroundColor3=Theme.Accent,BorderSizePixel=0,Visible=false,ZIndex=3,Parent=self.Sidebar}); Create("UICorner",{CornerRadius=UDim.new(1,0),Parent=self.TabIndicator})
@@ -94,8 +94,8 @@ function Lib.CreateWindow(options)
 	-- Avatar do Jogador
 	local AvatarContainer = Create("Frame", {
 		Name = "AvatarContainer",
-		Size = UDim2.new(1, 0, 0, 90),
-		Position = UDim2.new(0.5, 0, 1, -155),
+		Size = UDim2.new(1, 0, 0, 120),
+		Position = UDim2.new(0.5, 0, 1, -40),
 		AnchorPoint = Vector2.new(0.5, 1),
 		BackgroundTransparency = 1,
 		Parent = self.Sidebar,
@@ -105,7 +105,7 @@ function Lib.CreateWindow(options)
 	-- Avatar circular
 	local AvatarFrame = Create("Frame", {
 		Name = "AvatarFrame",
-		Size = UDim2.fromOffset(50, 50),
+		Size = UDim2.fromOffset(95, 95),
 		Position = UDim2.new(0.5, 0, 0, 10),
 		AnchorPoint = Vector2.new(0.5, 0),
 		BackgroundColor3 = Theme.Accent,
@@ -130,7 +130,7 @@ function Lib.CreateWindow(options)
 	local PlayerNameLabel = Create("TextLabel", {
 		Name = "PlayerName",
 		Size = UDim2.new(1, -20, 0, 20),
-		Position = UDim2.new(0.5, 0, 0, 65),
+		Position = UDim2.new(0.5, 0, 0, -20),
 		AnchorPoint = Vector2.new(0.5, 0),
 		BackgroundTransparency = 1,
 		Font = Theme.FontBody,
@@ -201,10 +201,6 @@ function Lib.CreateWindow(options)
 			
 			FPSLabel.Text = fps .. " FPS"
 			FPSFooterLabel.Text = "FPS: " .. fps
-			
-			-- Atualizar relógio
-			local currentTime = os.date("%H:%M:%S")
-			ClockLabel.Text = currentTime
 			
 			table.insert(fpsHistory, fps)
 			if #fpsHistory > maxHistory then table.remove(fpsHistory, 1) end
